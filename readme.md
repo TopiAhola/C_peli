@@ -4,16 +4,29 @@
 
 <br>
 <h2>Contents </h2>
-<ul>1. Idea</ul>
-<ul>2. </ul>
-<ul>3. </ul>
+<ol>
+<li>Idea</li>
+<li>Plan</li>
+<li> </li>
 
+</ol>
 
 <br>
 <h2>1. Idea</h3>
 <p> 
 Making a Windows based game coded in C by following Casey Muratori's video series Hand Made Hero...
 </p>
+
+<br>
+<h2>2. Plan</h2>
+<ol>
+<li>Watch 50+ videos</li>
+<li>???</li>
+<li>Learn C</li>
+<li>???</li>
+<li>Profit</li>
+</ol>
+
 
 
 <br>
@@ -24,3 +37,5 @@ What is hard:
 <li>Compiler, header files.
 <li>
 </p>
+
+
