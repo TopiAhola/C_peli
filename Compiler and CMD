@@ -1,0 +1,6 @@
+Compiler ajetaan näin: ?
+
+cmd /c chcp 65001>nul && C:\Ohjelmia\MSYS2\ucrt64\bin\g++.exe 
+-fdiagnostics-color=always 
+-g C:\Users\valas\VSCProjects\C_peli\Dailys\1_win_popup.cpp 
+-o C:\Users\valas\VSCProjects\C_peli\Dailys\1_win_popup.exe
