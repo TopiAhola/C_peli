@@ -1,0 +1,15 @@
+WINDOWS 32
+
+
+
+
+
+
+
+
+Useful functions:
+
+GetModuleHandle(0) = Function that returns current hInstance ?
+
+
+DefWindowProcA function (winuser.h)  = Function that handles window procedures in a default way if the program doesn't want to.

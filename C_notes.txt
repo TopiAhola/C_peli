@@ -1,0 +1,62 @@
+#include <iostream>
+#include <string.h> 
+using namespace std;
+int main(){
+
+/*C and C++ difference, in basic C structs cannot be used as types without declaring they are 
+types with typedef ?? */
+
+//C:
+struct cat{
+    int age;
+    string name;
+};
+typedef cat kissa;      //kissa is now a cat-struct type of struct ?
+kissa nemi;
+nemi.name = "Nemi";
+nemi.age = 15;
+
+
+//C++:
+struct cat2 {
+    char name[10];
+    int age;
+};
+cat2 nemi2; 
+
+// Also setting all values to 0 in C is done with empty braces?
+cat purre;  // Has zeroes in integers and empty string in name?
+purre = {}; // But this is the same... Maybe C++ treats it the same but C doesn't write zeroes unless specified?
+
+cout << "Purre:" << purre.name << purre.age;
+
+
+
+
+// Wide characters mey need to be specified woth "L" in front of string!!!
+// This is C++ feature with C its harder (  typedef wchar_t WCHAR; )
+// my_windowclass.lpszClassName = L"MyWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+return 0;
+}
