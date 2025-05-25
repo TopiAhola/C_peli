@@ -4,6 +4,7 @@ Day 1: 24.5.2025
 Daily 1. Start. Testing windows message box. Done.
 Daily 2. Had to specify ANSI versions of functions... Will be problem in the future?
 
+
 Day 2: 25.5.2025
 Windows libraries have problems. Have to set the compiler up manually with bat file...
 "undefined reference to `__imp_PatBlt' collect2.exe: error: ld returned 1 exit status"
