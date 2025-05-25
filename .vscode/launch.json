@@ -11,7 +11,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\gdb.exe",
+            "miDebuggerPath": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\gdb.exe",  //
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -22,10 +22,18 @@
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Windows dll file association",
+                    "text": "-l gdi32.lib",
+                    "ignoreFailures": true
                 }
             ],
             "preLaunchTask": "C/C++: g++.exe build active file"
         },
+        
+
+
         {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
@@ -37,6 +45,9 @@
             "environment": [],
             "console": "externalTerminal"
         },
+
+
+
         {
             "name": "C/C++: gcc.exe build and debug active file",
             "type": "cppdbg",
@@ -59,7 +70,13 @@
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Windows dll file association",
+                    "text": "-l gdi32.lib",
+                    "ignoreFailures": true
                 }
+
             ],
             "preLaunchTask": "C/C++: gcc.exe build active file"
         }

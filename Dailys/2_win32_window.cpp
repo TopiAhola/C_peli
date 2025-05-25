@@ -1,5 +1,7 @@
 #include <windows.h>
 #include <winuser.h>
+#include <wingdi.h>
+#include <windef.h>
 
 
 //This function is for the WNDCLASS 
@@ -9,24 +11,36 @@ LRESULT CALLBACK main_window_callback(
     WPARAM wparam,
     LPARAM lparam )
     {   
-        LRESULT result = 0;
-        switch(message){
-            case WM_ACTIVATEAPP: {OutputDebugStringA("WM_ACTIVATEAPP\n");} break;
+    LRESULT result = 0;
+    switch(message){
+        case WM_ACTIVATEAPP: {OutputDebugStringA("WM_ACTIVATEAPP\n");} break;
 
-            case WM_SIZE: {OutputDebugStringA("WM_SIZE\n");} break;
+        case WM_SIZE: {OutputDebugStringA("WM_SIZE\n");} break;
 
-            case WM_NCDESTROY: {OutputDebugStringA("WM_NCDESTROY\n");} break;
+        case WM_NCDESTROY: {OutputDebugStringA("WM_NCDESTROY\n");} break;
 
-            case WM_CLOSE: {OutputDebugStringA("WM_CLOSE\n");} break;
+        case WM_CLOSE: {OutputDebugStringA("WM_CLOSE\n");} break;
 
-            default: {
-                OutputDebugStringA("default\n");
-                result = DefWindowProc(window, message, wparam, lparam);  //Calling the windows default window procedure for some of the messages DefWindowProc
-            } break;
-        }
-        
+        case WM_PAINT: {
+            PAINTSTRUCT paintstruct1;
+            HDC devicecontext1 = BeginPaint(window, &paintstruct1);
+            int x = paintstruct1.rcPaint.top;
+            int y = paintstruct1.rcPaint.left;            
+            int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
+            int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
+            PatBlt(devicecontext1,x,y,w,h,PATCOPY); // (handle x,y,w,h , raster code)
+            EndPaint(window, &paintstruct1);
+            
+        } break;
 
-        return result;
+
+        default: {
+            OutputDebugStringA("default\n");
+            result = DefWindowProc(window, message, wparam, lparam);  //Calling the windows default window procedure for some of the messages DefWindowProc
+        } break;
+    }
+    
+    return result;
     }
 
 
@@ -35,23 +49,23 @@ int CALLBACK WinMain(
     HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine,
     int CmdShow)
-        {
-        WNDCLASSA my_windowclass = {} ;   //WNDCLASS my_windowclass -class Kokeillaan WNDCLASS+W
+    {
+    WNDCLASSA my_windowclass = {} ;   //WNDCLASS my_windowclass -class Kokeillaan WNDCLASS+W
 
-        my_windowclass.style = CS_CLASSDC|CS_HREDRAW|CS_VREDRAW;  //Check explanation at the bottom
-        my_windowclass.lpfnWndProc = main_window_callback;
-        //my_windowclass.cbClsExtra;
-        //my_windowclass.cbWndExtra;
-        my_windowclass.hInstance;
-        //my_windowclass.hIcon;
-        //my_windowclass.hCursor;
-        //my_windowclass.hbrBackground;
-        //my_windowclass.lpszMenuName;      
-        my_windowclass.lpszClassName = "MyWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
+    my_windowclass.style = CS_CLASSDC|CS_HREDRAW|CS_VREDRAW;  //Check explanation at the bottom
+    my_windowclass.lpfnWndProc = main_window_callback;
+    //my_windowclass.cbClsExtra;
+    //my_windowclass.cbWndExtra;
+    my_windowclass.hInstance;
+    //my_windowclass.hIcon;
+    //my_windowclass.hCursor;
+    //my_windowclass.hbrBackground;
+    //my_windowclass.lpszMenuName;      
+    my_windowclass.lpszClassName = "MyWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
 
 
-        
-        RegisterClassA(&my_windowclass); // Class has to be registered ? Function retruns an "ATOM" type thing but it isnt needed?
+    
+    if(RegisterClassA(&my_windowclass)){ // Class has to be registered ? Function retruns an "ATOM" type thing but it isnt needed?
 
         HWND windowhandle = CreateWindowExA(
             0,                                  //extended styles 0 = nothing
@@ -67,31 +81,37 @@ int CALLBACK WinMain(
             hInstance,                          //hInstance
             0                                   //lpParam can be used to pass paramater for smt.
         );
-        
-        if (windowhandle) {         //CreateWindowExW returns a handle to new window or NULL if fails.
-            MSG message;
-            while(1){
-                BOOL message_error = GetMessage(        //GetMessage gets messages from threads messaging queue Blocks something if no messages are available? 
-                    &message,                           //Pointer to a location to put message into
-                    0,                                  //Handle. 0 means getting messagess for all windows?
-                    0,                                  //Filter for messages Can filter keyboard and mouse messages?
-                    0                                   //Filter max at 0 means no filtering
-                );                                      //Getmessage writes message to the given pointer and returns a "BOOL", -1 is error?
-                
-                if(message_error > 0){                  //Microsoft BOOL is not a actual boolean! Its integer
-                    TranslateMessage(&message);                 //TODO Translatemessage 
-                    DispatchMessage(&message);                  //
-                } else{
-                    //break;
-                }
             
-            }
+            if (windowhandle) {         //CreateWindowExW returns a handle to new window or NULL if fails.
+                MSG message;
+                while(1){
+                    BOOL message_error = GetMessage(        //GetMessage gets messages from threads messaging queue Blocks something if no messages are available? 
+                        &message,                           //Pointer to a location to put message into
+                        0,                                  //Handle. 0 means getting messagess for all windows?
+                        0,                                  //Filter for messages Can filter keyboard and mouse messages?
+                        0                                   //Filter max at 0 means no filtering
+                    );                                      //Getmessage writes message to the given pointer and returns a "BOOL", -1 is error?
+                    
+                    if(message_error > 0){                  //Microsoft BOOL is not a actual boolean! Its integer
+                        TranslateMessage(&message);                 //TODO Translatemessage 
+                        DispatchMessage(&message);                  //
+                    } else{
+                        //windowhandle is NULL
+                        break;
+                    }
+                
+                }
         
         }
+    } else {} //Registerclass error
 
-
-        return 0;
+    return 0;
 }
+
+
+
+
+
 
 
 /*
@@ -148,14 +168,46 @@ HWND CreateWindowExW(
 );
 
 
-
-
 // GetMessage for getting something somewhere
 BOOL GetMessage(
   [out]          LPMSG lpMsg,
   [in, optional] HWND  hWnd,
   [in]           UINT  wMsgFilterMin,
   [in]           UINT  wMsgFilterMax
+);
+
+
+
+//Begin- and EndPaint to paint stuff into window
+HDC BeginPaint(
+  [in]  HWND          hWnd,
+  [out] LPPAINTSTRUCT lpPaint
+);
+
+BOOL EndPaint(
+  [in] HWND              hWnd,
+  [in] const PAINTSTRUCT *lpPaint
+);
+
+//PAINTSTRUCT contains info for Paint functions
+typedef struct tagPAINTSTRUCT {
+  HDC  hdc;
+  BOOL fErase;
+  RECT rcPaint;
+  BOOL fRestore;
+  BOOL fIncUpdate;
+  BYTE rgbReserved[32];
+} PAINTSTRUCT, *PPAINTSTRUCT, *NPPAINTSTRUCT, *LPPAINTSTRUCT;
+
+
+//PatBlt paints rectangles....
+BOOL PatBlt(
+  [in] HDC   hdc,
+  [in] int   x,
+  [in] int   y,
+  [in] int   w,
+  [in] int   h,
+  [in] DWORD rop
 );
 
 
