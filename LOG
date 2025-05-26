@@ -11,4 +11,7 @@ Windows libraries have problems. Have to set the compiler up manually with bat f
 
 
 Day 3: 26.5.2025
+Figured out how to link libraries to the compiler. Also how to edit the powershell command in VSCode.
+No progress with the code, but solving compiler problem was great.
 
+Day4: 27.6.2025

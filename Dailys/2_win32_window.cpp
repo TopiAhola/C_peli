@@ -1,7 +1,7 @@
 #include <windows.h>
-#include <winuser.h>
+//#include <winuser.h>
 #include <wingdi.h>
-#include <windef.h>
+//#include <windef.h>
 
 
 //This function is for the WNDCLASS 
@@ -28,8 +28,12 @@ LRESULT CALLBACK main_window_callback(
             int y = paintstruct1.rcPaint.left;            
             int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
             int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
-            PatBlt(devicecontext1,x,y,w,h,PATCOPY); // (handle x,y,w,h , raster code)
+            static DWORD raster_code = WHITENESS;       // static remembers its value like a global but is still limited in scope
+            PatBlt(devicecontext1,x,y,w,h,raster_code); // (handle x,y,w,h , raster code)
             EndPaint(window, &paintstruct1);
+            if (raster_code == WHITENESS) {raster_code = BLACKNESS;}
+            else if (raster_code == BLACKNESS) {raster_code = WHITENESS;}
+
             
         } break;
 

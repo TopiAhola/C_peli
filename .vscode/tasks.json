@@ -9,7 +9,13 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "-L",
+                "C:\\Ohjelmia\\MSYS2\\ucrt64\\lib",
+                "-l",
+                "gdi32",
+                "-l",
+                "user32" 
             ],
             "options": {
                 "cwd": "${fileDirname}"

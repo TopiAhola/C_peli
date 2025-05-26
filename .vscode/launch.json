@@ -25,7 +25,7 @@
                 },
                 {
                     "description": "Windows dll file association",
-                    "text": "-l gdi32.lib",
+                    "text": "-LC:\\Windows\\System32 -lgdi32.lib -luser32.lib",
                     "ignoreFailures": true
                 }
             ],
