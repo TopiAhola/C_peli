@@ -1,5 +1,6 @@
 {
     "configurations": [
+
         {
             "name": "C/C++: g++.exe build and debug active file",
             "type": "cppdbg",
@@ -9,9 +10,15 @@
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "externalConsole": false,
+            "externalConsole": false,            
             "MIMode": "gdb",
-            "miDebuggerPath": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\gdb.exe",  //
+            "miDebuggerPath": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\gdb.exe", 
+            "logging": {
+                //"trace": true,
+                //"traceResponse": true
+                "engineLogging": true   //enginelogging displays WM_ windowmessages 
+                        },           
+
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -43,7 +50,7 @@
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "internalConsole"
         },
 
 

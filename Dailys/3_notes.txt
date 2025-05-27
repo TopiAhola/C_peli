@@ -1,0 +1,6 @@
+Day 3 notes:
+
+Learned #define
+
+Bitmaps and backbuffer functions are complicated. No bugs?
+
