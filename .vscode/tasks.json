@@ -15,7 +15,9 @@
                 "-l",
                 "gdi32",
                 "-l",
-                "user32" 
+                "user32",
+                "-l",
+                "onecore" 
             ],
             "options": {
                 "cwd": "${fileDirname}"

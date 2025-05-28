@@ -20,3 +20,5 @@ Learned #define
 Bitmaps and backbuffer functions are complicated. No bugs?
 
 Day 5: 28.6.2025
+Created a bitmap draw function. Changed GetMessage to PeekMessage to allow 
+program loop without messages

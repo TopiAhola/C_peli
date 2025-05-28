@@ -1,4 +1,10 @@
-WINDOWS 32
+WINDOWS notes
+
+
+
+COLORS
+WINDOWS has colors in bitmaps in order: Blue-Green-Red-xxx
+0x000000ff is maximum red! 
 
 
 
