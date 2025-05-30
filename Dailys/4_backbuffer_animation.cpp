@@ -3,10 +3,11 @@
 #include <windows.h>
 
 /////////////////////////////////////////////////////////////
-//DEFINES
-#define local_static static   //2 names for static because static is scope dependent
-#define global_static static  // for global statics
-#define internal static       //static has 3rd meaning with functions limiting their callability
+//DEFINES                      
+                                // static remembers its value like a global but is still limited in scope
+#define local_static static     //2 names for static because static is scope dependent
+#define global_static static    // for global statics
+#define internal static         //static has 3rd meaning with functions limiting use of their name?
 
 /////////////////////////////////////////////////////////////
 //GLOBALS
@@ -23,11 +24,14 @@ global_static int bitmap_height;
 
 
 internal void
-draw_test(int loop){
-    //Draw something
+draw_test(){
+    //Draw something. Bitmap changes every time function is called. For example when resizing.
+
+    local_static int intensity = 0; //intensity increases every function call until it overflows    
+
     int pitch = bitmap_width*4;  //lenght of a row in bitmap
     //stride is?
-    int intensity = loop % 255;
+    
     OutputDebugStringA("draw test");
 
     UINT8 * p_row = (UINT8 *)p_bitmap_memory; //cast void bitmap pointer to 8 BIT INT
@@ -45,7 +49,7 @@ draw_test(int loop){
             //ANIMATED PER COLOR VERSION     
 
             UINT8 * p_color = (UINT8 *)p_pixel;
-            *p_color = intensity; //blue
+            *p_color = intensity; //blue from argument
             p_color++;
             *p_color = 0; //green to upper left
             p_color++;
@@ -58,7 +62,7 @@ draw_test(int loop){
         }
         p_row += pitch; //Moves pointer to next row
     }
-
+    intensity++;
 }
 
 
@@ -92,17 +96,16 @@ resize_dib_section(int width, int height){
     p_bitmap_memory = VirtualAlloc(0, bitmap_memory_size, MEM_COMMIT, PAGE_READWRITE);
     if(p_bitmap_memory){
         OutputDebugStringA("Bitmap memory reallocated:");
-    }
-    
+    }   
+     
 }
 ////////////////////////////////
 
-//Function to update window Copies a rectangle to another rect, scales if needed
+//Function to update window bitmap size. Copies a rectangle to another rect, scales if needed. Destination is at the pointer
 internal void 
-update_window(HDC devicecontext, RECT *window_rect ,int x, int y, int w, int h ){
-    int window_width = window_rect->right - window_rect->left;
-    int window_height = window_rect->bottom - window_rect->top;
-
+update_window(HDC devicecontext, RECT *client_rect ,int x, int y, int w, int h ){
+    int window_width = client_rect->right - client_rect->left;
+    int window_height = client_rect->bottom - client_rect->top;
 
     StretchDIBits(devicecontext,
         x, y, window_width, window_height,       //destination xywh
@@ -112,11 +115,26 @@ update_window(HDC devicecontext, RECT *window_rect ,int x, int y, int w, int h )
         DIB_RGB_COLORS,    //usage  
         SRCCOPY            //raster operation
     );
-
-
-
 }
-////////////////////////////////
+////////////////////////////////////////////////////////////////
+//WINDOW CALLBACK FUNCTIONS
+
+
+//function version for WM_PAINT so it can be called manually
+internal void wm_paint_function(HWND window){
+    PAINTSTRUCT paintstruct1;
+    RECT client_rect;
+    GetClientRect(window, &client_rect);        //ClientRect is the size of the rectangle INSIDE a window (no border)
+
+    HDC devicecontext1 = BeginPaint(window, &paintstruct1);
+    int x = paintstruct1.rcPaint.top;
+    int y = paintstruct1.rcPaint.left;            
+    int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
+    int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
+    //static DWORD raster_code = WHITENESS;       
+    update_window(devicecontext1,&client_rect,x,y,w,h );
+    EndPaint(window, &paintstruct1);
+}
 
 //This function is for the WNDCLASS 
 //Windows can use this when it wants. Main program can call this too, for example WM_PAINT to draw the window. 
@@ -137,6 +155,7 @@ main_window_callback(
                 int width = client_rect.right - client_rect.left;            
                 int height = client_rect.bottom - client_rect.top;
                 resize_dib_section(width, height);
+                draw_test(); //TODO: REMOVE THIS TEST DRAW?
                 OutputDebugStringA("WM_SIZE message\n");            
             } break;
 
@@ -152,18 +171,7 @@ main_window_callback(
             } break;
                         
             case WM_PAINT: {
-                PAINTSTRUCT paintstruct1;
-                RECT client_rect;
-                GetClientRect(window, &client_rect); 
-
-                HDC devicecontext1 = BeginPaint(window, &paintstruct1);
-                int x = paintstruct1.rcPaint.top;
-                int y = paintstruct1.rcPaint.left;            
-                int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
-                int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
-                static DWORD raster_code = WHITENESS;       // static remembers its value like a global but is still limited in scope
-                update_window(devicecontext1,&client_rect,x,y,w,h );
-                EndPaint(window, &paintstruct1);
+                wm_paint_function(window);
         
             } break;
 
@@ -175,9 +183,6 @@ main_window_callback(
         }
         return result;
     }
-////////////////////////////////
-
-
 
 /////////////////////////////////////////////////////////////
 //WINMAIN
@@ -189,7 +194,7 @@ int CALLBACK WinMain(
     {
     WNDCLASSA my_windowclass = {} ;   //WNDCLASS my_windowclass -class Kokeillaan WNDCLASS+W
 
-    my_windowclass.style = CS_CLASSDC|CS_HREDRAW|CS_VREDRAW;  //Check explanation at the bottom
+    my_windowclass.style = CS_CLASSDC|CS_HREDRAW|CS_VREDRAW;  //HREDRAW or VREDRAW draws the whole window again 
     my_windowclass.lpfnWndProc = main_window_callback;
     my_windowclass.hInstance;  
     my_windowclass.lpszClassName = "MyWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
@@ -202,7 +207,7 @@ int CALLBACK WinMain(
         HWND windowhandle = CreateWindowExA(
             0,                                  //extended styles 0 = nothing
             my_windowclass.lpszClassName,       //classname
-            "MyWindowClass",                         //name that may? overwrite class name
+            "Name_at_createwindow",             //name that may? overwrite class name
             WS_OVERLAPPEDWINDOW|WS_VISIBLE,     //window styles
             CW_USEDEFAULT,                      // x dimension does CW_USEDEFAULT actually use fome default value?
             CW_USEDEFAULT,                      // y dimension
@@ -220,6 +225,7 @@ int CALLBACK WinMain(
             MSG message;
             BOOL return_message = 0;
 
+            //program loop 
             while(program_running)
             {
                 //message loop
@@ -235,14 +241,24 @@ int CALLBACK WinMain(
                         TranslateMessage(&message);                 
                         DispatchMessageA(&message);
                         OutputDebugStringA("message loop");                        
-                        Sleep(500);
+                       
                 }
 
-                //first animation
-                OutputDebugStringA("loop");
-                Sleep(500);
+                //TODO: Test draw should animate background as program runs but doesnt:
+                /*
+                RECT client_rect;
+                GetClientRect(windowhandle, &client_rect);
+                int w = client_rect.right - client_rect.left;
+                int h = client_rect.bottom - client_rect.top;
+                resize_dib_section(w,h); 
+                draw_test();
+                wm_paint_function(windowhandle);
+                */    
 
-   
+
+                //program loop ends
+                OutputDebugStringA("program loop");
+                Sleep(1);
             }
 
         } //TODO WINDOWHANDLE ERROR      
@@ -250,7 +266,7 @@ int CALLBACK WinMain(
     return 0;
 }
 
-
+/////////////////////////////////////////////////////////////
 /*
 New Windows Functions
 

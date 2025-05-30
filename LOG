@@ -14,11 +14,30 @@ Day 3: 26.5.2025
 Figured out how to link libraries to the compiler. Also how to edit the powershell command in VSCode.
 No progress with the code, but solving compiler problem was great.
 
+
 Day 4: 27.6.2025
 Daily 3 done. 
 Learned #define
 Bitmaps and backbuffer functions are complicated. No bugs?
 
+
 Day 5: 28.6.2025
 Created a bitmap draw function. Changed GetMessage to PeekMessage to allow 
-program loop without messages
+program loop without messages. This seems to loop too fast.
+Added a static variable to draw_test() instead. Works.
+
+
+Day6:
+break
+
+
+Day7:
+break
+
+
+Day 8: 30.5.2025
+Animation on resize works but not while looping... Daily 5 not started
+
+
+Day 9: 31.5.2025
+
