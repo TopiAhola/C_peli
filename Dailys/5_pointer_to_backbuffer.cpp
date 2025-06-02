@@ -1,6 +1,7 @@
 /////////////////////////////////////////////////////////////
 //HEADER FILES
 #include <windows.h>
+#include <stdint.h>
 
 /////////////////////////////////////////////////////////////
 //DEFINES                      
@@ -8,37 +9,62 @@
 #define local_static static     //2 names for static because static is scope dependent
 #define global_static static    // for global statics
 #define internal static         //static has 3rd meaning with functions limiting use of their name?
+ 
 
 /////////////////////////////////////////////////////////////
+//STRUCTS
+
+struct offscreen_bitmap{
+    BITMAPINFO info;
+    void * p_memory = VirtualAlloc(0, (2500*1400*4), MEM_COMMIT, PAGE_READWRITE);
+    int width;
+    int height;
+    int bytes_per_pixel;
+    int pitch;
+
+} ;
+
+struct window_dimensions {
+    int width;
+    int height;
+};
+
+
+
 //GLOBALS
 global_static bool program_running;      //this is toggled false when program needs to quit
-
-global_static BITMAPINFO bitmapinfo;    //TODO: bitmap stuff is here temporarily
-global_static void * p_bitmap_memory;
-//TODO: some temp variables:
-global_static int bitmap_width;
-global_static int bitmap_height;
+global_static offscreen_bitmap backbuffer = {};  //backbuffer is a offscreen_bitmap struct
+global_static offscreen_bitmap * p_backbuffer = &backbuffer;
 
 /////////////////////////////////////////////////////////////
 //FUNCTIONS
 
 
+//Returns dimensions of RECT for a given window
+window_dimensions get_window_dimensions(HWND window){
+    RECT client_rect;
+    GetClientRect(window, &client_rect);
+    window_dimensions dimensions;
+    dimensions.width = client_rect.right - client_rect.left;
+    dimensions.height = client_rect.bottom - client_rect.top;
+    return dimensions;
+};
+
+
+//Takes a pointer to a bitmap. Draws something to the given bitmap.  
 internal void
-draw_test(){
-    //Draw something. Bitmap changes every time function is called. For example when resizing.
-
-    local_static int intensity = 0; //intensity increases every function call until it overflows    
-
-    int pitch = bitmap_width*4;  //lenght of a row in bitmap
-    //stride is?
+draw_test(offscreen_bitmap * bitmap){
     
     OutputDebugStringA("draw test");
 
-    UINT8 * p_row = (UINT8 *)p_bitmap_memory; //cast void bitmap pointer to 8 BIT INT
-    for(int y=0; y<bitmap_height; y++)
+    local_static int intensity = 0; //intensity increases every function call until it overflows    
+    int pitch = bitmap->width*bitmap->bytes_per_pixel;  //lenght of a row in bitmap
+        
+    UINT8 * p_row = (UINT8 *)bitmap->p_memory; //cast void bitmap pointer to 8 BIT INT
+    for(int y=0; y<bitmap->height; y++)
     {
         UINT32 * p_pixel = (UINT32*)p_row;     //recast to 32 bit to point argb values
-        for(int x=0; x<bitmap_width; x++)
+        for(int x=0; x<bitmap->width; x++)
         {
             //p_pixel = p_pixel + x;    //iterates over pixels, SEGFAULTS
 
@@ -53,7 +79,7 @@ draw_test(){
             p_color++;
             *p_color = 0; //green to upper left
             p_color++;
-            *p_color = (200*x*y/bitmap_width/bitmap_height); //red bottom right
+            *p_color = (200*x*y/bitmap->width/bitmap->height); //red bottom right
             p_color++;
             *p_color = 0; //buffer maybe use for some effect later
             p_color++;
@@ -67,74 +93,61 @@ draw_test(){
 
 
 ////////////////////////////////
+//Takes a pointer to an offscreen_bitmap and resizes it to argument size
 internal void 
-resize_dib_section(int width, int height){
-//Function to be called when window is resized. Resizes global static bitmapinfo
-    if(p_bitmap_memory){
-        VirtualFree(p_bitmap_memory, 0, MEM_RELEASE);
-    }
+resize_dib_section(offscreen_bitmap * bitmap,int width, int height){
 
-    bitmapinfo.bmiHeader.biSize = sizeof(bitmapinfo.bmiHeader);
-    bitmapinfo.bmiHeader.biWidth = width;
-    bitmapinfo.bmiHeader.biHeight = -height;        //Negative height defines bitmap starts top-left corner (positive is bottom-left)
-    bitmapinfo.bmiHeader.biPlanes = 1;
-    bitmapinfo.bmiHeader.biBitCount = 32;
-    bitmapinfo.bmiHeader.biCompression = BI_RGB;
-    bitmapinfo.bmiHeader.biSizeImage = 0;
-    bitmapinfo.bmiHeader.biXPelsPerMeter = 0;       //For printing? Not important.
-    bitmapinfo.bmiHeader.biYPelsPerMeter = 0;
-    bitmapinfo.bmiHeader.biClrUsed = 0;
-    bitmapinfo.bmiHeader.biClrImportant = 0;
-    //Setting the temp globals: TODO: remove
-    bitmap_width = width;
-    bitmap_height = height;
+
+    bitmap->info.bmiHeader.biSize = sizeof(bitmap->info.bmiHeader);
+    bitmap->info.bmiHeader.biWidth = width;
+    bitmap->info.bmiHeader.biHeight = -height;        //Negative height defines bitmap starts top-left corner (positive is bottom-left)
+    bitmap->info.bmiHeader.biPlanes = 1;
+    bitmap->info.bmiHeader.biBitCount = 32;
+    bitmap->info.bmiHeader.biCompression = BI_RGB;
+    bitmap->info.bmiHeader.biSizeImage = 0;
+    bitmap->info.bmiHeader.biXPelsPerMeter = 0;       //For printing? Not important.
+    bitmap->info.bmiHeader.biYPelsPerMeter = 0;
+    bitmap->info.bmiHeader.biClrUsed = 0;
+    bitmap->info.bmiHeader.biClrImportant = 0;    
+    bitmap->width = width;
+    bitmap->height = height;
+    bitmap->bytes_per_pixel = 4;
+    bitmap->pitch = width*bitmap->bytes_per_pixel;
     //TODO: check whether bitmap_devicecontext exsist before assingning it? Temp it is global wut that will change
 
-    //Manual memory allocation for bitmap:
-    int bytes_per_pixel = 4;    //32 bit argb
-    int bitmap_memory_size = width*height*bytes_per_pixel;
-    p_bitmap_memory = VirtualAlloc(0, bitmap_memory_size, MEM_COMMIT, PAGE_READWRITE);
-    if(p_bitmap_memory){
-        OutputDebugStringA("Bitmap memory reallocated:");
+    //Manual memory allocation for bitmap:  
+      if(bitmap->p_memory){
+        VirtualFree(bitmap->p_memory, 0, MEM_RELEASE);
+        OutputDebugStringA("Offscrren bitmap memory released:");
+    }
+
+    int bitmap_memory_size = bitmap->width*bitmap->height*bitmap->bytes_per_pixel;
+    bitmap->p_memory = VirtualAlloc(0, bitmap_memory_size, MEM_COMMIT, PAGE_READWRITE);
+
+    if(bitmap->p_memory){
+        OutputDebugStringA("Offscrren bitmap memory reallocated:");
     }   
      
 }
 ////////////////////////////////
-
-//Function to update window bitmap size. Copies a rectangle to another rect, scales if needed. Destination is at the pointer
+//Function to update window bitmap size. 
+// Copies a rectangle to another rect, scales if needed. Destination is at the pointer
 internal void 
-update_window(HDC devicecontext, RECT *client_rect ,int x, int y, int w, int h ){
-    int window_width = client_rect->right - client_rect->left;
-    int window_height = client_rect->bottom - client_rect->top;
+update_window(HDC devicecontext, offscreen_bitmap * bitmap ,int x, int y, int window_width, int window_height){
 
     StretchDIBits(devicecontext,
         x, y, window_width, window_height,       //destination xywh
-        x, y, bitmap_width, bitmap_height,       //source  xywh
-        p_bitmap_memory,    //pointer to bitmap location
-        &bitmapinfo,        //pointer to bitmapinfo
-        DIB_RGB_COLORS,    //usage  
-        SRCCOPY            //raster operation
+        x, y, bitmap->width, bitmap->height,      //source  xywh
+        bitmap->p_memory,                         //pointer to bitmap location
+        &bitmap->info,                            //pointer to bitmap.info
+        DIB_RGB_COLORS,                           //usage  
+        SRCCOPY                                   //raster operation
     );
 }
+
 ////////////////////////////////////////////////////////////////
 //WINDOW CALLBACK FUNCTIONS
 
-
-//function version for WM_PAINT so it can be called manually
-internal void wm_paint_function(HWND window){
-    PAINTSTRUCT paintstruct1;
-    RECT client_rect;
-    GetClientRect(window, &client_rect);        //ClientRect is the size of the rectangle INSIDE a window (no border)
-
-    HDC devicecontext1 = BeginPaint(window, &paintstruct1);
-    int x = paintstruct1.rcPaint.top;
-    int y = paintstruct1.rcPaint.left;            
-    int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
-    int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
-    //static DWORD raster_code = WHITENESS;       
-    update_window(devicecontext1,&client_rect,x,y,w,h );
-    EndPaint(window, &paintstruct1);
-}
 
 //This function is for the WNDCLASS 
 //Windows can use this when it wants. Main program can call this too, for example WM_PAINT to draw the window. 
@@ -150,12 +163,9 @@ main_window_callback(
             case WM_ACTIVATEAPP: {OutputDebugStringA("WM_ACTIVATEAPP\n");} break;
 
             case WM_SIZE: {
-                RECT client_rect;
-                GetClientRect(window, &client_rect);        //clientrect is the rectangle inside a window program can draw to (borders not included, fullscreen has no borders)
-                int width = client_rect.right - client_rect.left;            
-                int height = client_rect.bottom - client_rect.top;
-                resize_dib_section(width, height);
-                draw_test(); //TODO: REMOVE THIS TEST DRAW?
+                window_dimensions dimensions = get_window_dimensions(window);
+                resize_dib_section(p_backbuffer, dimensions.width, dimensions.height);
+                draw_test(p_backbuffer);                
                 OutputDebugStringA("WM_SIZE message\n");            
             } break;
 
@@ -171,7 +181,17 @@ main_window_callback(
             } break;
                         
             case WM_PAINT: {
-                wm_paint_function(window);
+                PAINTSTRUCT paintstruct1;
+                window_dimensions dim = get_window_dimensions(window);
+
+                HDC devicecontext1 = BeginPaint(window, &paintstruct1);
+                int x = paintstruct1.rcPaint.top;
+                int y = paintstruct1.rcPaint.left;            
+                int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
+                int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
+                //static DWORD raster_code = WHITENESS;       
+                update_window(devicecontext1, p_backbuffer,x,y,dim.width,dim.height);
+                EndPaint(window, &paintstruct1);
         
             } break;
 
@@ -197,14 +217,14 @@ int CALLBACK WinMain(
     my_windowclass.style = CS_CLASSDC|CS_HREDRAW|CS_VREDRAW;  //HREDRAW or VREDRAW draws the whole window again 
     my_windowclass.lpfnWndProc = main_window_callback;
     my_windowclass.hInstance;  
-    my_windowclass.lpszClassName = "MyWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
+    my_windowclass.lpszClassName = "MyGameWindowClass"; //Väärä tyyppi? compiler onnistuu kuitenkin?
 
 
     
     if(RegisterClassA(&my_windowclass))
     { // Class has to be registered ? Function retruns an "ATOM" type thing but it isnt needed?
 
-        HWND windowhandle = CreateWindowExA(
+        HWND window = CreateWindowExA(
             0,                                  //extended styles 0 = nothing
             my_windowclass.lpszClassName,       //classname
             "Name_at_createwindow",             //name that may? overwrite class name
@@ -219,17 +239,17 @@ int CALLBACK WinMain(
             0                                   //lpParam can be used to pass paramater for smt.
         );
             
-        if (windowhandle) 
+        if (window) 
         {                                  
             program_running = true;  
             MSG message;
-            BOOL return_message = 0;
+            BOOL message_bool = 0;
 
             //program loop 
             while(program_running)
             {
                 //message loop
-                while(return_message = PeekMessage(        //PeekMessage gets messages if any
+                while(message_bool = PeekMessage(        //PeekMessage gets messages if any
                     &message,                           //Pointer to a location to put message into
                     0,                                  //Handle. 0 means getting messagess for all windows?
                     0,                                  //Filter for messages Can filter keyboard and mouse messages?
@@ -245,19 +265,15 @@ int CALLBACK WinMain(
                 }
 
                 //TODO: Test draw should animate background as program runs but doesnt:
-                draw_test();
-                RECT client_rect;
-                GetClientRect(windowhandle, &client_rect);
-                int w = client_rect.right - client_rect.left;
-                int h = client_rect.bottom - client_rect.top;
+                draw_test(p_backbuffer);
 
-                HDC device_context = GetDC(windowhandle);
-                update_window(device_context, &client_rect, 0,0,w,h);
-                ReleaseDC(windowhandle, device_context);
+                window_dimensions dimensions = get_window_dimensions(window);
+                HDC device_context = GetDC(window);
+                update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
+                ReleaseDC(window, device_context);
                 //This works. Why DC has to be released?
                 
                     
-
 
                 //program loop ends
                 OutputDebugStringA("program loop");
@@ -268,6 +284,8 @@ int CALLBACK WinMain(
     } //TODO: Registerclass error 
     return 0;
 }
+
+
 
 /////////////////////////////////////////////////////////////
 /*
