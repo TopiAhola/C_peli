@@ -5,5 +5,7 @@ C:\Ohjelmia\MSYS2\ucrt64\bin\g++.exe
 -o C:\Users\valas\VSCProjects\C_peli\Dailys\2_win32_window.exe 
 -L C:\Ohjelmia\MSYS2\ucrt64\lib -l gdi32 -l user32
 
+
+
 Libraries are included with the compiler. They have a header and file type 
 that must be omitted in the -l argument: libuser32.lib -> user32

@@ -1,6 +1,9 @@
 WINDOWS notes
+Maybe copy functions from dailys and explain them
 
 
+////////////////////////////////////////////////////////
+General topics in alpha order
 
 COLORS
 WINDOWS has colors in bitmaps in order: Blue-Green-Red-xxx
@@ -12,8 +15,8 @@ WINDOWS has colors in bitmaps in order: Blue-Green-Red-xxx
 
 
 
-
-Useful functions:
+////////////////////////////////////////////////////////
+Windows functions
 
 GetModuleHandle(0) = Function that returns current hInstance ?
 

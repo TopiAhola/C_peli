@@ -24,7 +24,7 @@ Making a Windows based game coded in C by following Casey Muratori's video serie
 
 <h2>2. Plan</h2>
 <ol>
-<li>Watch 50+ videos</li>
+<li>Watch 600+ videos</li>
 <li>???</li>
 <li>Learn C</li>
 <li>???</li>
@@ -49,12 +49,15 @@ Files
 <li>Q_A_O - Questions, answers and observations  </li>        
 <li>Notes - Maybe for documenting random things </li>
 <li>Compiler and CMD - Compiler settings and notes </li>
+<li>Win_notes - Notes about developing in Windows</li>
+<li>.bat files - For running the compilers manually</li>
 </ol>
 
 Folders:
 <ul>
 <li>Dailys - Code following daily videos</li>
 <li>Tests - Random testing </li>
+<li>Tools - Self made dev tools</li>
 
 </ul>
 
