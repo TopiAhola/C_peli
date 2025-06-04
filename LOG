@@ -40,4 +40,7 @@ Day 12: 3.6.2025
 Gamepad input. Random macro-function-as-type-pointer-shit. Doesn't crash. Daily 6 half done.
 
 Day 13: 4.6.2025
-Daily 6 continued
+Daily 6 completed. draw_test() takes keyboard input to animate the bitmap.
+
+Day 14: 5.6.2025
+
