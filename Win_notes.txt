@@ -5,9 +5,20 @@ Maybe copy functions from dailys and explain them
 ////////////////////////////////////////////////////////
 General topics in alpha order
 
+
+AUDIO
+DirectSound, is a legacy feature. It has been superseded by XAudio2 and Audio Graphs. These newer frameworks have been optimized for Windows 10 and Windows 11.
+
+
+
+
 COLORS
 WINDOWS has colors in bitmaps in order: Blue-Green-Red-xxx
 0x000000ff is maximum red! 
+
+
+
+
 
 
 

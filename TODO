@@ -6,6 +6,12 @@ Learn to read memory and debug by stepping.
 
 
 
+Replace Directsound with Xaudio
+
+Key up shouldn't count as input for controlling things? Otherwise liftin a key stalls other keypresses.
+Or specify priority for inputs? 
+
+
 
 Done:
 

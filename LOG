@@ -31,16 +31,22 @@ Day 6: 30.5.2025
 Animation on resize works but not while looping... Daily 5 not started
 
 
-Day 11: 2.6.2025
+Day 7: 2.6.2025
 Animation during main program loop works :) Daily 5, change bitmap related functions to use a pointer instead of a global variable for bitmap.
 resize_dib_section segfaults... Because pointer was null. (missing &variable) Works now!
 Replaced GetClientRect() calls with get_window_dimensions()
 
-Day 12: 3.6.2025
+
+Day 8: 3.6.2025
 Gamepad input. Random macro-function-as-type-pointer-shit. Doesn't crash. Daily 6 half done.
 
-Day 13: 4.6.2025
+
+Day 9: 4.6.2025
 Daily 6 completed. draw_test() takes keyboard input to animate the bitmap.
 
-Day 14: 5.6.2025
 
+Day 10: 5.6.2025
+Directsound buffers set. Secondary buffer doesn't work. Maybe something to do with buffer size? Need to replace with XAudio anyway.
+
+
+Day 11: 6.6.2025
