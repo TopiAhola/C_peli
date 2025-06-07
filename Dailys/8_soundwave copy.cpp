@@ -199,9 +199,9 @@ internal void sound_test(LPDIRECTSOUNDBUFFER sound_buffer){
     //Set lock segments
     DWORD lock_start_byte = previous_play_cursor_position;  
     DWORD lock_size;
-    LPVOID *segment1_p;
+    LPVOID segment1_p;
     DWORD segment1_size;
-    LPVOID *segment2_p;          
+    LPVOID segment2_p;          
     DWORD segment2_size;    
 
     if(play_cursor_position > previous_play_cursor_position){ 
@@ -222,9 +222,9 @@ internal void sound_test(LPDIRECTSOUNDBUFFER sound_buffer){
         sound_buffer->Lock(         
             lock_start_byte,
             lock_size, 
-            segment1_p,
+            &segment1_p,
             &segment1_size,
-            segment2_p,
+            &segment2_p,
             &segment2_size,
             0
         );
