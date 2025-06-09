@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "win32_exame": "c",
-        "optional": "cpp"
+        "optional": "cpp",
+        "cmath": "cpp"
     }
 }

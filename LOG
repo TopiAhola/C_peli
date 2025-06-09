@@ -54,7 +54,8 @@ Daily 8 was fun. Heap corruption error. Needs debugging.
 
 
 Day 12: 8.6.2025
-aly 8 works. Error was passing a pointer insted of pointer to pointer to soundbuffer Lock().
+Daily 8 works. Error was passing a pointer insted of pointer to pointer to soundbuffer Lock().
 
 
-Day13:
+Day13: 9.6.2025
+Sinewave sound works
