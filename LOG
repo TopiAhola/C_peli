@@ -57,5 +57,11 @@ Day 12: 8.6.2025
 Daily 8 works. Error was passing a pointer insted of pointer to pointer to soundbuffer Lock().
 
 
-Day13: 9.6.2025
-Sinewave sound works
+Day 13: 9.6.2025
+Sinewave sound works. Sound buffer was off by one.
+
+
+Day 14:
+Daily 10 done. Wrote general performance counter functions. 
+Maybe create a general benchmark class that lets me put measurement points wherever.
+Has to allocate memory dynamically.

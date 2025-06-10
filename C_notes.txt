@@ -1,10 +1,15 @@
-#include <iostream>
-#include <string.h> 
-using namespace std;
-int main(){
+////////////////////
 
-/*C and C++ difference, in basic C structs cannot be used as types without declaring they are 
-types with typedef ?? */
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//C vs C++
+
+
+C and C++ difference, in basic C structs cannot be used as types without declaring they are 
+types with typedef ?? 
 
 //C:
 struct cat{
@@ -25,12 +30,15 @@ struct cat2 {
 cat2 nemi2; 
 
 // Also setting all values to 0 in C is done with empty braces?
-cat purre;  // Has zeroes in integers and empty string in name?
-purre = {}; // But this is the same... Maybe C++ treats it the same but C doesn't write zeroes unless specified?
+
+cat purre;          // Has zeroes in integers and empty string in name?
+purre = {};         // But this is the same... Maybe C++ treats it the same but C doesn't write zeroes unless specified?
 
 cout << "Purre:" << purre.name << purre.age;
 
 
+
+////////////////////
 
 
 // Wide characters mey need to be specified woth "L" in front of string!!!
@@ -40,6 +48,26 @@ cout << "Purre:" << purre.name << purre.age;
 
 
 
+
+////////////////////////////////////////////////////////////////////////////////
+//Union
+
+Union allows referring to the same object(?) with multiple ways. 
+The different interpretations have to be same size? 
+Here is an union of a 64 bit struct:
+
+typedef union _LARGE_INTEGER {
+    __C89_NAMELESS struct {
+      DWORD LowPart;
+      LONG HighPart;
+    } DUMMYSTRUCTNAME;
+    struct {
+      DWORD LowPart;
+      LONG HighPart;
+    } u;
+#endif
+    LONGLONG QuadPart;
+  } LARGE_INTEGER;
 
 
 
