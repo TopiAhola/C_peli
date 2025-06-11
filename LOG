@@ -61,7 +61,10 @@ Day 13: 9.6.2025
 Sinewave sound works. Sound buffer was off by one.
 
 
-Day 14:
+Day 14: 10.6.2025
 Daily 10 done. Wrote general performance counter functions. 
 Maybe create a general benchmark class that lets me put measurement points wherever.
 Has to allocate memory dynamically.
+
+Day 15: 11.6.2025
+Daily 11 done. First daily in setting up the build environment. Learned how messed c is with file names.

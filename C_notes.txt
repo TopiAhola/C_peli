@@ -70,6 +70,13 @@ typedef union _LARGE_INTEGER {
   } LARGE_INTEGER;
 
 
+////////////////////////////////////////////////////////////////////////////////
+//Header files
+
+File type suffix doesn't differentiate files when compiling?!
+Header files refer to .h files with _h ?? 
+WHY IS ALL CAPS?
+
 
 
 

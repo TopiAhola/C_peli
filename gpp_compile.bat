@@ -15,3 +15,5 @@ C:\Ohjelmia\MSYS2\ucrt64\bin\g++.exe
 -L C:\Ohjelmia\MSYS2\ucrt64\lib -l gdi32 -l user32
 
 EI ERRORIA!½!
+
+
