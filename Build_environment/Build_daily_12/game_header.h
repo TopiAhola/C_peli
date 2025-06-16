@@ -1,17 +1,21 @@
-#if !defined(GAME_H)
+#if !defined(GAME_H) //This prevents defining this file twice in another file.
+
+
+
 
 //TYPES
 
+//Regular bool is 1 byte
 typedef unsigned long int bool32;
 
 typedef signed char int8;
 typedef signed short int int16;
-typedef signed int int32;          //Is it 32 bits really?
+typedef signed int int32;          
 typedef signed long long int int64;
 
 typedef unsigned char uint8;
 typedef unsigned short int uint16;
-typedef unsigned long int uint32;
+typedef unsigned int uint32;
 typedef unsigned long long int uint64;
 
 typedef float float32;
@@ -42,9 +46,11 @@ struct game_soundbuffer {
 };
 
 
+//FUNCTIONS
+
 //time (for variable rate rendering), inputs, pointer to bitmap and sound buffer
 static void game_update_and_render(game_backbuffer * bitmap, game_soundbuffer * soundbuffer, uint32 samples_used, int x_input, int y_input);
 
-#define GAME_H
 
+#define GAME_H
 #endif

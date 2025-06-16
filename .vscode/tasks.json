@@ -17,7 +17,9 @@
                 "-l",
                 "user32",
                 "-l",
-                "onecore"
+                "onecore",
+                "-D",           //-D to define things in header file
+                "DEBUG_MODE=1"
             ],
             "options": {
                 "cwd": "${fileDirname}"
