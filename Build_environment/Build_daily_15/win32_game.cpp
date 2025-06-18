@@ -416,6 +416,18 @@ internal void perf_timer_stop(perf_timer * timer_struct){
 
 
 ////////////////////////////////
+//Frees memory allocated for file operation
+internal bool32 platform_free_file_memory(void * file_p ){  
+    WINBOOL success = 0;       
+    if(file_p){
+        success = VirtualFree(file_p, 0 , MEM_RELEASE); //size 0 releases whole previously allocated block       
+    } 
+    return (bool32)success;
+}
+
+
+////////////////////////////////
+//Creates an empty file
 internal bool
 platform_create_file(char* filename) {
     bool create_success = false;
@@ -486,6 +498,7 @@ platform_read_file(char* filename){
 
             } else {
                 //TODO: wrife fail logging
+                platform_free_file_memory(memory);
             } 
 
         } else {
@@ -503,15 +516,6 @@ platform_read_file(char* filename){
 
 }
 
-////////////////////////////////
-//Frees memory allocated for file operation
-internal bool32 platform_free_file_memory(void * file_p ){
-    WINBOOL success = 0;
-    if(file_p){
-        success = VirtualFree(file_p, 0 , MEM_RELEASE);        
-    } 
-    return (bool32)success;
-}
 
 
 /////////////////////////////////////////////////////////////

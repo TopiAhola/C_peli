@@ -163,10 +163,11 @@ game_update_and_render(
     char *filename = "read_target";
     read_file_result test_file_struct = platform_read_file(filename);
     assert(test_file_struct.size);    
-    platform_write_file("my file", test_file_struct.size, (void *)test_file_struct.memory);
+    platform_write_file("write target", test_file_struct.size, (void *)test_file_struct.memory);
+    platform_free_file_memory(test_file_struct.memory);
     
 
-    //write_to_memory(game_memory->base_memory, gigabytes(4));  
+    //write_to_memory(game_memory->base_memory, gigabytes(4));  //Writes 4 GB for testing 
     
 }
 
