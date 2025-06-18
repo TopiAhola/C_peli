@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 //Includes
 
-#include <C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_daily_14\game_header.h>
+#include <C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_daily_15\game_header.h>
 #include <cmath> //for sin
 
 //Temp includes for debugging:
@@ -140,11 +140,8 @@ game_update_and_render(
     uint32 samples_used, 
     game_input input
 ){
-    assert(game_memory);
 
 
-
-    //input testing:
     int32 x_input = input.pad[0].LX / 1000;
     int32 y_input = input.pad[0].LY / 1000;
 
@@ -158,8 +155,16 @@ game_update_and_render(
     if(x_input < 1000){x_input = input.x_input;}
     if(y_input < 1000){y_input = input.y_input;}
 
+
     draw_test(bitmap, x_input, y_input);
     sound_test(soundbuffer,samples_used, x_input, y_input);
+
+    
+    char *filename = "read_target";
+    read_file_result test_file_struct = platform_read_file(filename);
+    assert(test_file_struct.size);    
+    platform_write_file("my file", test_file_struct.size, (void *)test_file_struct.memory);
+    
 
     //write_to_memory(game_memory->base_memory, gigabytes(4));  
     

@@ -121,30 +121,20 @@ struct memory_pool {
     uint8 * temp_memory;
 };
 
-
 struct read_file_result {
     uint64 size;
     void* memory;
 };
 
 
+
 ////////////////////////////////////////////////////////////////
 //DEBUGGING
 
-#if DEVELOPER_BUILD       //SET DEVELOPER_BUILD=1 IN COMPILER ARGUMENTS
+#if DEBUG_MODE       //SET DEBUG_MODE=1 IN COMPILER ARGUMENTS
 #define assert(expression) if(!(expression)){ *((int*) 0) = 0;}
-
 #else
 #define assert(expression)
-
-#endif
-
-#if PERFORMANCE_MODE       //SET PERFORMANCE_MODE=1 IN COMPILER ARGUMENTS
-#define test_function(error) {} //fast version of function
-
-#else
-#define test_function(error)    //slow version of function
-
 #endif
 
 
@@ -153,14 +143,21 @@ struct read_file_result {
 
 internal bool platform_create_file(char* filename);
 internal bool platform_write_file(char* filename, uint64 size, void * memory);
-internal read_file_result platform_read_file(char* filename, uint64 size, void * memory);
+internal read_file_result platform_read_file(char* filename);
 internal bool32 platform_free_file_memory(void * file_p );
 
+internal uint32
+truncate_uint64(uint64 large_integer){
+    assert(large_integer < 0xffffffff);
+    uint32 truncated_int;
+    truncated_int = (uint32)large_integer;  
+    return truncated_int;
+}
 
 
 
 ////////////////////////////////////////////////////////////////
-//GAME FUNCTIONS
+//FUNCTIONS
 
 //time (for variable rate rendering), inputs, pointer to bitmap and sound buffer
 static void game_update_and_render(memory_pool * game_memory, game_backbuffer * bitmap, game_soundbuffer * soundbuffer, uint32 samples_used, game_input input);

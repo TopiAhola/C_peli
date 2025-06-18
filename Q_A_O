@@ -25,6 +25,7 @@ Answers:
 
 Observations:
 
+__FILE__ points to the file it is written in. Never use for testing.
 
 Windows environmental stuff is hard. 
 Working on a coding project alongside work is also hard. 

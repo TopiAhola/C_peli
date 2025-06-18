@@ -66,9 +66,22 @@ Daily 10 done. Wrote general performance counter functions.
 Maybe create a general benchmark class that lets me put measurement points wherever.
 Has to allocate memory dynamically.
 
+
 Day 15: 11.6.2025
 Daily 11 done. First daily in setting up the build environment. Learned how messed c is with file names.
+
 
 Day 16: 12.6.2025
 Daily 12 done. Moved the sound function to platform agnostic game.cpp file. 
 Attempt to quickly create a sound mixer failed but was't important.
+
+
+Day 17: 16.6.2025
+Daily 14 done. Daily 13 cannot be tested because the controller may be broken.
+Learned to define variables in compiler arguments. Will start putting assert() functions in code.
+
+
+Day 18: 18.6.2025
+Windows CreateFile(), WriteFile, ReadFile() functions in Windows platform layer. 
+Learned to NEVER use the proram files themselves as test read/writes after __FILE__ self reference
+wiped a file with bad read function...

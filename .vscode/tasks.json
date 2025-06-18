@@ -19,7 +19,9 @@
                 "-l",
                 "onecore",
                 "-D",           //-D to define things in header file
-                "DEBUG_MODE=1"
+                "DEVELOPER_BUILD=1",
+                "-D",
+                "PERFORMANCE_MODE=0"
             ],
             "options": {
                 "cwd": "${fileDirname}"
