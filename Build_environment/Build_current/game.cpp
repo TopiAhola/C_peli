@@ -20,7 +20,7 @@
 //SOUND
 
 //Writes test sound to given sound buffer 
-internal void sound_test(game_soundbuffer * soundbuffer, uint32 samples_used, int x_input, int y_input){  
+internal void sound_test(game_soundbuffer * soundbuffer, uint32 samples_used, int32 x_input, int32 y_input){  
     //TODO: This crashes with negative or overflowing frequency       
     //Continous sine wave
     local_static int16 amplitude = 1000;
@@ -65,13 +65,22 @@ struct game_backbuffer{
 
 //Takes a pointer to a bitmap. Draws something to the given bitmap.  
 internal void
-draw_test(game_backbuffer * bitmap, int x_input = 0 , int y_input = 0){
+draw_test(game_backbuffer * bitmap, int32 x_input = 0 , int32 y_input = 0){
    
     //location for a green spot in bitmap
-    local_static int y_location = 0;  
-    y_location = y_location + y_input; 
-    local_static int x_location = 0;  
-    x_location = x_location + x_input;
+    int32 pixels_per_frame = 10;
+    local_static int32 x_location = 0;  
+    local_static int32 y_location = 0;  
+    x_location = x_location + (x_input * pixels_per_frame);
+    y_location = y_location + (y_input * pixels_per_frame); 
+
+    if(x_location > bitmap->width){x_location = bitmap->width;}
+    if(x_location < 0){x_location = 0;}
+    if(y_location > bitmap->height){x_location = bitmap->height;}
+    if(y_location < 0){y_location = 0;}
+
+
+    //TODO: Setting green color this way is convoluted
     uint8 green_spot;
     uint8 * p_green_spot = & green_spot; 
    
@@ -141,27 +150,61 @@ game_update_and_render(
     uint32 samples_used, 
     game_input input
 ){
+    //Produce normalized inputs for x, y in -1...1 range.
+    bool use_pad_only = false;
+    int8 use_pad_index = 0;    
+    
+    int32 x_input = 0;
+    int32 y_input = 0;
 
+    if(use_pad_only){
+        x_input = input.pad[use_pad_index].LX / 32768;  //int16  range -32768 ... 32767
+        y_input = input.pad[use_pad_index].LY / 32768;  //normalized range = -1 ... 1
 
-    int32 x_input = input.pad[0].LX / 1000;
-    int32 y_input = input.pad[0].LY / 1000;
+    } else {
+        for(int16 event; event<input.other_amount; event++){
+            //TODO: This will set other input than directions
+        }
 
-    /*
-    if(input.pad.a){x_input = 1000;}
-    if(input.pad.b){x_input = -1000;}
-    if(input.pad.x){y_input = 1000;}
-    if(input.pad.y){y_input = -1000;}
-    */
+        //TODO: per millisecond input processing. This version will average inputs in x and y directions.
+        //TODO: wasdown is not used for now?
+        //TODO would make more sense to just write numbers and skin this switch? At least if direction keys are NEVER used for not-steering.
+        bool x_down_continues = false;
+        bool y_down_continues = false;
 
-    if(x_input < 1000){x_input = input.x_input;}
-    if(y_input < 1000){y_input = input.y_input;}
+        if(input.x_amount != 0){            
+            for(uint16 event = 0; event < input.x_amount; event++){
+                
+                switch(input.x_axis[event].key){
+                    case 'R': x_input++; break;
+                    case 'L': x_input--; break;
+                }
+            }
 
+            x_input = (x_input / input.x_amount); //Average inputs together
 
+        } else { x_input = 0;}
+
+        if(input.y_amount != 0){
+            for(uint16 event = 0; event < input.y_amount; event++){
+                switch(input.y_axis[event].key){    
+                    case 'U': y_input--; break;
+                    case 'D':  y_input++; break;
+                }       
+            }
+
+            y_input = (y_input / input.y_amount); //Average inputs together
+
+        } else { y_input = 0;}
+
+    }
+
+    //TODO: Maybe a normalized location value for rendering and sound
     draw_test(bitmap, x_input, y_input);
     sound_test(soundbuffer,samples_used, x_input, y_input);
 
     
-    char *filename = "read_target";
+    char * filename = "read_target";
     read_file_result test_file_struct = platform_debug_read_file(filename);
     assert(test_file_struct.size);    
     platform_debug_write_file("write target", test_file_struct.size, (void *)test_file_struct.memory);

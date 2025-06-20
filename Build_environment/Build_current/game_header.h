@@ -1,4 +1,4 @@
-#if !defined(GAME_H) //This prevents defining this file twice in another file.
+#if !defined(GAME_HEADER) //This prevents defining this file twice in another file.
 
 
 ////////////////////////////////////////////////////////////////
@@ -98,14 +98,14 @@ struct pad_input {
 
 
 struct game_input {
-    //TODO: Use arrays with timestamps for inputs
-
-    //for testing
-    int32 x_input;
-    int32 y_input; 
 
     //Keyboard
-    keypress kb[1000];
+    int32 x_amount;
+    int32 y_amount;
+    int32 other_amount;    
+    keypress x_axis[1000];
+    keypress y_axis[1000];
+    keypress other[1000];    
 
     //All gamepads in array
     pad_input pad[4];
@@ -175,5 +175,5 @@ truncate_uint64(uint64 large_integer){
 
 
 
-#define GAME_H
+#define GAME_HEADER
 #endif

@@ -2,7 +2,7 @@
     "configurations": [
 
         {
-            "name": "C/C++: g++.exe build and debug active file",
+            "name": "NUC C/C++: g++.exe build and debug active file",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -36,7 +36,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "C/C++: g++.exe build active file"
+            "preLaunchTask": "NUC C/C++: g++.exe build active file"
         },
         
         {

@@ -38,12 +38,6 @@ global_static bool program_running;      //this is toggled false when program ne
 global_static offscreen_bitmap backbuffer = {};  //backbuffer is a offscreen_bitmap struct
 global_static offscreen_bitmap * p_backbuffer = &backbuffer;
 
-//KB input test globals TODO: remove?
-int kb_x_input;
-int kb_y_input;
-game_input inputs;
-
-
 
 /////////////////////////////////////////////////////////////
 //TESTING LOADING WINDOWS FUNCTIONS MANUALLY
@@ -315,7 +309,7 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
 //INPUTS
 
 internal void 
-get_inputs(game_input * input){
+get_pad_inputs(game_input * input){
 
     DWORD input_error_code;
     for(int index = 0; index < XUSER_MAX_COUNT; index++ ){
@@ -356,12 +350,6 @@ get_inputs(game_input * input){
             OutputDebugStringA("No XInput controller.\n");
         }                
     }
-
-    //TODO: REMOVE Global kb inputs for testing 
-    input->x_input = kb_x_input;             
-    input->y_input = kb_y_input; 
-    
-
 }
 
 /////////////////////////////////////////////////////////////
@@ -605,7 +593,7 @@ main_window_callback(
     LPARAM lparam )
     {   
         LRESULT result = 0;
-        kb_y_input = 0;
+
         switch(message){
             case WM_ACTIVATEAPP: {OutputDebugStringA("WM_ACTIVATEAPP\n");} break;
 
@@ -638,97 +626,14 @@ main_window_callback(
                 //static DWORD raster_code = WHITENESS;       
                 update_window(devicecontext1, p_backbuffer,x,y,dim.width,dim.height);
                 EndPaint(window, &paintstruct1);
-        
-            } break;
-
-            //Function key input. alt+f4 works if input fed into DefWindowProc or defined here
-            case WM_SYSKEYDOWN:
-            case WM_SYSKEYUP: {
-                UINT32 virtual_key_code = wparam;
-                LPARAM lparam_bits = lparam;
-                bool alt_pressed = ( (lparam_bits & (1<<29)) == 1 ); //is alt key pressed at the same time as key in message
-
-                if(virtual_key_code == VK_F4){ program_running = false; } //TODO add controlled shutdown sequence
-
-            } break;
+                OutputDebugStringA("WM_PAINT called\n");
+            } break;         
             
             
-            //Keyboard input. 
+            //Keyboard input was here. Should be handled in program loop now.
             case WM_KEYDOWN:
             case WM_KEYUP: {
-                UINT32 virtual_key_code = wparam;
-                LPARAM lparam_bits = lparam;
-                bool previous_state = ( lparam_bits & (1 << 30) );      //bit 30 indicates prev state 1 = was pressed
-                bool pressed = ( (lparam_bits & (1 << 31)) == 0 );   //bit 31 indicates transition state 0 = is down
-
-                switch(virtual_key_code){
-                    //arrow keys
-                    case VK_UP:         if(pressed){kb_y_input = -10;} else {kb_y_input = 0;}     break;  
-                    case VK_LEFT:       if(pressed){kb_x_input = -10;} else {kb_x_input = 0;}      break;    
-                    case VK_RIGHT:      if(pressed){kb_x_input = 10;} else {kb_x_input = 0;}      break;    
-                    case VK_DOWN:       if(pressed){kb_y_input = 10;} else {kb_y_input = 0;}      break;  
-
-                    //special keys
-                    case VK_SPACE:       break;     //Space key
-                    case VK_RETURN:      break;     //Enter key
-                    case VK_LSHIFT:      break;     //Left Shift key
-                    case VK_RSHIFT:      break;     //Right Shift key
-                    case VK_LCONTROL:    break;		//Left Ctrl key
-                    case VK_RCONTROL:    break;		//Right Ctrl key
-                    case VK_MENU:        break; 	//Alt key
-                    case VK_LMENU:       break;     //Left Alt key
-                    case VK_RMENU:       break;     //Right Alt key
-                    case VK_TAB:         break;	    //Tab key                    
-                    case VK_CAPITAL:     break;	    //Caps lock key  
-
-                    //characters
-                    case '0':  add_    break;		//0 key
-                    case '1':  add_    break;		//1 key
-                    case '2':  add_    break;		//2 key
-                    case '3':  add_    break;		//3 key
-                    case '4':  add_    break;		//4 key
-                    case '5':  add_    break;		//5 key
-                    case '6':  add_    break;		//6 key
-                    case '7':  add_    break;		//7 key
-                    case '8':  add_    break;		//8 key
-                    case '9':  add_    break;		//9 key
-                    case 'A':  add_    break;		//A key
-                    case 'B':  add_    break;		//B key
-                    case 'C':  add_    break;		//C key
-                    case 'D':  add_    break;		//D key
-                    case 'E':  add_    break;		//E key
-                    case 'F':  add_    break;		//F key
-                    case 'G':  add_    break;		//G key
-                    case 'H':  add_    break;		//H key
-                    case 'I':  add_    break;		//I key
-                    case 'J':  add_    break;		//J key
-                    case 'K':  add_    break;		//K key
-                    case 'L':  add_    break;		//L key
-                    case 'M':  add_    break;		//M key
-                    case 'N':  add_    break;		//N key
-                    case 'O':  add_    break;		//O key
-                    case 'P':  add_    break;		//P key
-                    case 'Q':  add_    break;		//Q key
-                    case 'R':  add_    break;		//R key
-                    case 'S':  add_    break;		//S key
-                    case 'T':  add_    break;		//T key
-                    case 'U':  add_    break;		//U key
-                    case 'V':  add_    break;		//V key
-                    case 'W':  add_    break;		//W key
-                    case 'X':  add_    break;		//X key
-                    case 'Y':  add_    break;		//Y key
-                    case 'Z':  add_    break;		//Z key
-
-                    //mouse buttons
-                    case VK_LBUTTON	:    break;        
-                    case VK_RBUTTON	:    break;        
-                    case VK_CANCEL:      break;      
-                    case VK_MBUTTON:     break;   
-                    case VK_XBUTTON1:    break;        
-                    case VK_XBUTTON2:    break;
-
-                }
-
+                assert(0); //This shouldnt be called ever
             } break;
 
             default: {
@@ -740,6 +645,120 @@ main_window_callback(
 }
 
 
+
+
+
+////////////////////////////////
+//Writes keyboard inputs to inputs struct
+internal void keyboard_message_queue(MSG * message, game_input * input){
+    UINT32 virtual_key_code = 0;
+    LPARAM lparam_bits = 0;
+
+    switch(message->message){
+        case WM_QUIT:{ 
+        program_running = false;} break;  //TODO: controlled shutdown?
+        
+        
+        //Function key input. alt+f4 works if input fed into DefWindowProc or defined here
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP: {
+            virtual_key_code = message->wParam;
+            lparam_bits = message->lParam;
+            bool alt_pressed = ( (lparam_bits & (1<<29)) == 1 ); //is alt key pressed at the same time as key in message
+
+            if(virtual_key_code == VK_F4){ program_running = false; } //TODO add controlled shutdown sequence
+
+        } break;
+
+        case WM_KEYDOWN:
+        case WM_KEYUP: {
+            virtual_key_code = message->wParam;
+            lparam_bits = message->lParam;
+            bool previous_state = ( lparam_bits & (1 << 30) );      //bit 30 indicates prev state 1 = was pressed
+            bool pressed = ( (lparam_bits & (1 << 31)) == 0 );   //bit 31 indicates transition state 0 = is down
+            
+            bool direction_input = false;
+            keypress new_keypress;
+            new_keypress.time = message->time;
+            new_keypress.was_down = previous_state;
+
+            switch(virtual_key_code){
+                //arrow keys                
+                case VK_UP:     
+                    {new_keypress.key = 'U'; input->y_axis[input->y_amount] = new_keypress; input->y_amount++;} break;  
+                case VK_LEFT:   
+                    {new_keypress.key = 'L'; input->x_axis[input->x_amount] = new_keypress; input->x_amount++;} break;    
+                case VK_RIGHT:  
+                    {new_keypress.key = 'R'; input->x_axis[input->x_amount] = new_keypress; input->x_amount++;} break;    
+                case VK_DOWN:   
+                    {new_keypress.key = 'D'; input->y_axis[input->y_amount] = new_keypress; input->y_amount++;} break;  
+                
+
+                //special keys //TODO: Skip these for now
+                case VK_SPACE:       break;     //Space key
+                case VK_RETURN:      break;     //Enter key
+                case VK_LSHIFT:      break;     //Left Shift key
+                case VK_RSHIFT:      break;     //Right Shift key
+                case VK_LCONTROL:    break;		//Left Ctrl key
+                case VK_RCONTROL:    break;		//Right Ctrl key
+                case VK_MENU:        break; 	//Alt key
+                case VK_LMENU:       break;     //Left Alt key
+                case VK_RMENU:       break;     //Right Alt key
+                case VK_TAB:         break;	    //Tab key                    
+                case VK_CAPITAL:     break;	    //Caps lock key  
+
+                //characters
+                case '0':     break;		//0 key
+                case '1':     break;		//1 key
+                case '2':     break;		//2 key
+                case '3':     break;		//3 key
+                case '4':     break;		//4 key
+                case '5':     break;		//5 key
+                case '6':     break;		//6 key
+                case '7':     break;		//7 key
+                case '8':     break;		//8 key
+                case '9':     break;		//9 key
+                case 'A':     break;		//A key
+                case 'B':     break;		//B key
+                case 'C':     break;		//C key
+                case 'D':     break;		//D key
+                case 'E':     break;		//E key
+                case 'F':     break;		//F key
+                case 'G':     break;		//G key
+                case 'H':     break;		//H key
+                case 'I':     break;		//I key
+                case 'J':     break;		//J key
+                case 'K':     break;		//K key
+                case 'L':     break;		//L key
+                case 'M':     break;		//M key
+                case 'N':     break;		//N key
+                case 'O':     break;		//O key
+                case 'P':     break;		//P key
+                case 'Q':     break;		//Q key
+                case 'R':     break;		//R key
+                case 'S':     break;		//S key
+                case 'T':     break;		//T key
+                case 'U':     break;		//U key
+                case 'V':     break;		//V key
+                case 'W':     break;		//W key
+                case 'X':     break;		//X key
+                case 'Y':     break;		//Y key
+                case 'Z':     break;		//Z key
+
+                //mouse buttons
+                case VK_LBUTTON	:    break;        
+                case VK_RBUTTON	:    break;        
+                case VK_CANCEL:      break;      
+                case VK_MBUTTON:     break;   
+                case VK_XBUTTON1:    break;        
+                case VK_XBUTTON2:    break;
+
+            }
+
+        } break;
+
+    }
+}
 
 /////////////////////////////////////////////////////////////
 //WINMAIN
@@ -828,26 +847,35 @@ int CALLBACK WinMain(
                 QueryPerformanceCounter(&start_timer);
                 QueryPerformanceFrequency(&counter_freq);
 
+                //Reset input struct
+                input = {};
 
                 //Message loop
-                while(message_bool = PeekMessage(        //PeekMessage gets messages if any
+                while(message_bool = PeekMessage(        //PeekMessage gets messages if any //PeekMessage writes message to the given pointer and returns a "BOOL"
                     &message,                           //Pointer to a location to put message into
                     0,                                  //Handle. 0 means getting messagess for all windows?
                     0,                                  //Filter for messages Can filter keyboard and mouse messages?
                     0,                                   //Filter max at 0 means no filtering
-                    PM_REMOVE ))                          //Removes returned messages from queue  
-                    {                                    //PeekMessage writes message to the given pointer and returns a "BOOL"
-                        
-                        if(message.message == WM_QUIT){ program_running = false;}
-                        TranslateMessage(&message);                 
-                        DispatchMessageA(&message);
-                        OutputDebugStringA("message loop\n");                        
-                       
-                }           
+                    PM_REMOVE ))                         //Removes returned messages from queue  
+                    {                         
+                    switch(message.message){
+                        case WM_KEYDOWN: case WM_KEYUP: case WM_SYSKEYUP: case WM_SYSKEYDOWN: case WM_QUIT: {
+                            //Get keyboard inputs into game_input struct
+                            keyboard_message_queue(&message, &input); 
+                        } break;
 
-                
-                //Get inputs into game_input struct
-                get_inputs(&input);
+                        default: {
+                            //Other input go to regular message callback function
+                            TranslateMessage(&message);                                     
+                            DispatchMessageA(&message); 
+                        } break;
+                    }                                      
+           
+                    OutputDebugStringA("message loop\n");
+                }       
+
+                //Get gamepad inputs into game_input struct
+                get_pad_inputs(&input);
 
 
                 //GAME MAIN FUNCTION
