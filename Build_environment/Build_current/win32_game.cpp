@@ -41,6 +41,7 @@ global_static offscreen_bitmap * p_backbuffer = &backbuffer;
 //KB input test globals TODO: remove?
 int kb_x_input;
 int kb_y_input;
+game_input inputs;
 
 
 
@@ -681,42 +682,42 @@ main_window_callback(
                     case VK_CAPITAL:     break;	    //Caps lock key  
 
                     //characters
-                    case '0':     break;		//0 key
-                    case '1':     break;		//1 key
-                    case '2':     break;		//2 key
-                    case '3':     break;		//3 key
-                    case '4':     break;		//4 key
-                    case '5':     break;		//5 key
-                    case '6':     break;		//6 key
-                    case '7':     break;		//7 key
-                    case '8':     break;		//8 key
-                    case '9':     break;		//9 key
-                    case 'A':     break;		//A key
-                    case 'B':     break;		//B key
-                    case 'C':     break;		//C key
-                    case 'D':     break;		//D key
-                    case 'E':     break;		//E key
-                    case 'F':     break;		//F key
-                    case 'G':     break;		//G key
-                    case 'H':     break;		//H key
-                    case 'I':     break;		//I key
-                    case 'J':     break;		//J key
-                    case 'K':     break;		//K key
-                    case 'L':     break;		//L key
-                    case 'M':     break;		//M key
-                    case 'N':     break;		//N key
-                    case 'O':     break;		//O key
-                    case 'P':     break;		//P key
-                    case 'Q':     break;		//Q key
-                    case 'R':     break;		//R key
-                    case 'S':     break;		//S key
-                    case 'T':     break;		//T key
-                    case 'U':     break;		//U key
-                    case 'V':     break;		//V key
-                    case 'W':     break;		//W key
-                    case 'X':     break;		//X key
-                    case 'Y':     break;		//Y key
-                    case 'Z':     break;		//Z key
+                    case '0':  add_    break;		//0 key
+                    case '1':  add_    break;		//1 key
+                    case '2':  add_    break;		//2 key
+                    case '3':  add_    break;		//3 key
+                    case '4':  add_    break;		//4 key
+                    case '5':  add_    break;		//5 key
+                    case '6':  add_    break;		//6 key
+                    case '7':  add_    break;		//7 key
+                    case '8':  add_    break;		//8 key
+                    case '9':  add_    break;		//9 key
+                    case 'A':  add_    break;		//A key
+                    case 'B':  add_    break;		//B key
+                    case 'C':  add_    break;		//C key
+                    case 'D':  add_    break;		//D key
+                    case 'E':  add_    break;		//E key
+                    case 'F':  add_    break;		//F key
+                    case 'G':  add_    break;		//G key
+                    case 'H':  add_    break;		//H key
+                    case 'I':  add_    break;		//I key
+                    case 'J':  add_    break;		//J key
+                    case 'K':  add_    break;		//K key
+                    case 'L':  add_    break;		//L key
+                    case 'M':  add_    break;		//M key
+                    case 'N':  add_    break;		//N key
+                    case 'O':  add_    break;		//O key
+                    case 'P':  add_    break;		//P key
+                    case 'Q':  add_    break;		//Q key
+                    case 'R':  add_    break;		//R key
+                    case 'S':  add_    break;		//S key
+                    case 'T':  add_    break;		//T key
+                    case 'U':  add_    break;		//U key
+                    case 'V':  add_    break;		//V key
+                    case 'W':  add_    break;		//W key
+                    case 'X':  add_    break;		//X key
+                    case 'Y':  add_    break;		//Y key
+                    case 'Z':  add_    break;		//Z key
 
                     //mouse buttons
                     case VK_LBUTTON	:    break;        
