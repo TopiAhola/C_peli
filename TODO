@@ -14,6 +14,8 @@ Document build environment with pictures.
 
 Get proper gamepad and test xinput.
 
+KB input should be written to an array with timestamps and passed in to game function.
+
 
 Done:
 
