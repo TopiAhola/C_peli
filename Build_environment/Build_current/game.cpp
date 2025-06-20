@@ -26,7 +26,8 @@ internal void sound_test(game_soundbuffer * soundbuffer, uint32 samples_used, in
     local_static int16 amplitude = 1000;
     local_static uint32 freq = 100;     
     amplitude += (10 * x_input );
-    freq += y_input; 
+    freq += y_input;
+    if(freq <= 0){freq = 1;} 
 
     uint32 sample_counter = samples_used;  //Wave is genereted from the point it has been copied to playing buffer
     uint32 period = (soundbuffer->sample_rate / freq);
