@@ -116,26 +116,26 @@ draw_test(game_backbuffer * bitmap, int32 x_location, int32 y_location){
 internal void
 get_keyboard_inputs(float32 * x_input, float32 * y_input, game_input * input){
     //TODO: Is this optimal? 
-    //Number values chosen to be similar to 16-bit gamepad input which is arbitrary.
+    //Maybe use if(ended or started) input = 32 767
     int32 right_input = 0;   
-    if(input->right.ended_down){right_input += 16384;}
-    if(input->right.started_down){right_input += 16384;}
-    *x_input += (float32)( (float32)right_input / 32768.0f );
+    if(input->right.ended_down){right_input += 16383;}
+    if(input->right.started_down){right_input += 16383;}
+    *x_input += (float32)( (float32)right_input / (float32)(input->right.transition_count + 1) / 32768.0f );
     
     int32 left_input = 0;
-    if(input->left.ended_down){left_input += 16384;}
-    if(input->left.started_down){left_input += 16384;}
-    *x_input -= (float32)( (float32)left_input / 32768.0f );
+    if(input->left.ended_down){left_input += 16383;}
+    if(input->left.started_down){left_input += 16383;}
+    *x_input -= (float32)( (float32)left_input / (float32)(input->left.transition_count + 1) / 32768.0f );
 
     int32 up_input = 0;   
-    if(input->up.ended_down){up_input += 16384;}
-    if(input->up.started_down){up_input += 16384;}
-    *y_input -= (float32)( (float32)up_input / 32768.0f );
+    if(input->up.ended_down){up_input += 16383;}
+    if(input->up.started_down){up_input += 16383;}
+    *y_input -= (float32)( (float32)up_input / (float32)(input->up.transition_count + 1) / 32768.0f );
     
     int32 down_input = 0;
-    if(input->down.ended_down){down_input += 16384;}
-    if(input->down.started_down){down_input += 16384;}
-    *y_input += (float32)( (float32)down_input / 32768.0f );
+    if(input->down.ended_down){down_input += 16383;}
+    if(input->down.started_down){down_input += 16383;}
+    *y_input += (float32)( (float32)down_input / (float32)(input->down.transition_count + 1) / 32768.0f );
 
 }
 

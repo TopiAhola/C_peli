@@ -88,4 +88,11 @@ wiped a file with bad read function...
 
 
 Day 19: 20.6.2025
-Decided to stop versioning by naming files and rely on Git instead.
+Decided to stop versioning by naming files and rely on Git instead. Daily 16 done. KB input uses array with timestamps. Set up compiler launch settings for NUC and laptop. Windows keypress input is frustrating.
+
+
+Day 20: 23.6.2025
+Daily 17 done. Keyboard input feels quite good. Still need to get a gamepad to test that. Keyboard and pad input are normalized to same value. Bad sound function crashed the system. Next daily is to add frame rate limiter.
+
+
+Day 21: 24.6.2025
