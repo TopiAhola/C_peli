@@ -95,4 +95,5 @@ Day 20: 23.6.2025
 Daily 17 done. Keyboard input feels quite good. Still need to get a gamepad to test that. Keyboard and pad input are normalized to same value. Bad sound function crashed the system. Next daily is to add frame rate limiter.
 
 
-Day 21: 24.6.2025
+Day 21: 28.6.2025
+Daily 18 done. Also modified keyboard input to make switching direction faster with arrow keys. Tested higher compiler warning level, seems useful but it doesn't understand Windows functions for example. Will need to disable some warnings or not use it constantly.

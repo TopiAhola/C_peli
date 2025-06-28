@@ -87,9 +87,9 @@
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "internalConsole"
-        },
-
-
+        }
+        /*
+        ,
 
         {
             "name": "C/C++: gcc.exe build and debug active file",
@@ -123,6 +123,7 @@
             ],
             "preLaunchTask": "C/C++: gcc.exe build active file"
         }
+        */
     ],
     "version": "2.0.0"
 }

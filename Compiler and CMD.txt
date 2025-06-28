@@ -35,4 +35,13 @@ g++ -I /path/to/headers main.cpp -o main
 #########################################
 Day 16
 
-Set warnings on in compiler?
+Set warnings on in compiler:
+
+C:\Ohjelmia\MSYS2\ucrt64\bin\g++.exe 
+-fdiagnostics-color=always 
+-g C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\win32_game.cpp 
+-o C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\win32_game.exe 
+-L C:\Ohjelmia\MSYS2\ucrt64\lib -l gdi32 -l user32 -l onecore 
+-D DEVELOPER_BUILD=1 -D PERFORMANCE_MODE=0
+-Wall
+-Wextra

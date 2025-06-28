@@ -35,7 +35,7 @@ internal void sound_test(game_soundbuffer * soundbuffer, uint32 samples_used, fl
      //Write to buffer memory
     int16 value;
     int16 * channel_p = soundbuffer->memory_p;  
-    for(int sample = 0; sample < ( soundbuffer->size / soundbuffer->bytes_per_sample ); sample++){
+    for(uint32 sample = 0; sample < ( soundbuffer->size / soundbuffer->bytes_per_sample ); sample++){
         
         //Sine wave function value
         float32 phase = sinf( (2.0f * pi32 * ( (float32)sample_counter) / ((float32)period) ) );
@@ -115,30 +115,54 @@ draw_test(game_backbuffer * bitmap, int32 x_location, int32 y_location){
 
 internal void
 get_keyboard_inputs(float32 * x_input, float32 * y_input, game_input * input){
-    //TODO: Is this optimal? 
-    //Number values chosen to be similar to 16-bit gamepad input which is arbitrary.
-    int32 right_input = 0;   
-    if(input->right.ended_down){right_input += 16384;}
-    if(input->right.started_down){right_input += 16384;}
-    *x_input += (float32)( (float32)right_input / 32768.0f );
-    
-    int32 left_input = 0;
-    if(input->left.ended_down){left_input += 16384;}
-    if(input->left.started_down){left_input += 16384;}
-    *x_input -= (float32)( (float32)left_input / 32768.0f );
+    static bool moving_right = false;
+    static bool moving_up = false;
 
-    int32 up_input = 0;   
-    if(input->up.ended_down){up_input += 16384;}
-    if(input->up.started_down){up_input += 16384;}
-    *y_input -= (float32)( (float32)up_input / 32768.0f );
-    
-    int32 down_input = 0;
-    if(input->down.ended_down){down_input += 16384;}
-    if(input->down.started_down){down_input += 16384;}
-    *y_input += (float32)( (float32)down_input / 32768.0f );
+    //X-axis
+    if(!input->left.started_down && input->left.ended_down){
+        moving_right = false;
 
+    } else if(!input->right.started_down && input->right.ended_down) {
+        moving_right = true;
+    } 
+                  
+    if(input->right.ended_down && input->left.ended_down){
+        //If both pressed resolve based on which was pressed down this frame
+        if(moving_right){
+            *x_input += 1.0f;
+        } else {
+            *x_input -= 1.0f;
+        }
+
+    } else if(input->right.ended_down){
+        *x_input += 1.0f;
+    } else if(input->left.ended_down){
+        *x_input -= 1.0f;
+    }
+
+    //Y-axis
+    if(!input->down.started_down && input->down.ended_down){
+        moving_up = false;
+
+    } else if(!input->up.started_down && input->up.ended_down) {
+        moving_up = true;
+    } 
+                  
+    if(input->down.ended_down && input->up.ended_down){
+        //If both pressed resolve based on which was pressed down this frame
+        if(moving_up){
+            *y_input -= 1.0f;
+        } else {
+            *y_input += 1.0f;
+        }
+
+    } else if(input->down.ended_down){
+        *y_input += 1.0f;
+    } else if(input->up.ended_down){
+        *y_input -= 1.0f;
+    }
+    
 }
-
 
 //Derive input values from input timestamps TODO: Not used for now
 internal void 
@@ -199,7 +223,7 @@ get_inputs_from_events(int32 * x_input, int32 * y_input, game_input_events * inp
 //Tests memory allocation
 internal void
 write_to_memory( uint8 * location, uint64 amount){        
-    for(int64 n=0; n<amount; n++){
+    for(uint64 n=0; n<amount; n++){
         *location = 255;
         location++;
     }

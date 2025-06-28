@@ -357,7 +357,7 @@ get_pad_inputs(game_input * input){
 
 //TODO: One struct for all benchmark times with one unified print function
 
-//
+////////////////////////////////
 struct perf_timer {
     int id = 0;
     long long time_start;
@@ -366,6 +366,7 @@ struct perf_timer {
     char timer_text_buffer[512];
 };
 
+////////////////////////////////
 //Writes start time to struct
 internal void perf_timer_start(perf_timer * timer_struct){
 
@@ -381,6 +382,7 @@ internal void perf_timer_start(perf_timer * timer_struct){
 
 }
 
+////////////////////////////////
 //Prints alapsed time and CPU cycles for a given timer
 internal void perf_timer_stop(perf_timer * timer_struct){
 
@@ -396,6 +398,57 @@ internal void perf_timer_stop(perf_timer * timer_struct){
     
     sprintf(timer_struct->timer_text_buffer, "Timer %d: %.02f ms, %.02f M cpu cycles " ,timer_struct->id, time_passed_ms, cpu_cycles);
     OutputDebugStringA(timer_struct->timer_text_buffer);
+
+}
+
+////////////////////////////////
+internal void
+loop_timer_and_sleep(
+    unsigned long long * cpu_cycle_count,
+    unsigned long long * prev_cpu_cycle_count, 
+    LARGE_INTEGER * end_timer,
+    LARGE_INTEGER * prev_end_timer,
+    LARGE_INTEGER * counter_freq,
+    long long * program_loop_time,
+    float * target_frame_time_ms,
+    bool timer_pediod_set
+){
+    *cpu_cycle_count = __rdtsc(); //long long is 64 bit?
+    unsigned long long program_loop_cpu_cycles = cpu_cycle_count - prev_cpu_cycle_count;
+    
+    QueryPerformanceCounter(end_timer);
+    *program_loop_time = end_timer->QuadPart - prev_end_timer->QuadPart;
+
+    float frame_time_ms =  1000.0f * ((float) (*program_loop_time)) / (float)(counter_freq->QuadPart); //milliseconds
+    float fps = 1000.0f / frame_time_ms;
+    float cpu_cycles = ( (float)program_loop_cpu_cycles ) / 1000000.0f ;       
+    float sleep_time =  *target_frame_time_ms - frame_time_ms;    
+    
+    char fps_text_buffer[512];
+    sprintf(fps_text_buffer, "Frame: %.02f ms, %.02f fps if uncapped, %.02f M cpu cycles, sleep for: %.02f ms" ,frame_time_ms, fps, cpu_cycles, sleep_time);
+    OutputDebugStringA(fps_text_buffer);
+    
+    //Waits for frame time
+    float delayed_frame_time_ms = frame_time_ms;
+    if(sleep_time > 0){
+
+        //Sleep for whole ms if timer set to 1ms resolution
+        if(timer_pediod_set){
+            Sleep( (DWORD)sleep_time);
+        } 
+
+        //Idle in a loop for sub ms precision
+        while(delayed_frame_time_ms < *target_frame_time_ms){
+            QueryPerformanceCounter(end_timer);
+            *program_loop_time = end_timer->QuadPart - prev_end_timer->QuadPart;
+            delayed_frame_time_ms =  1000.0f * ((float) (*program_loop_time)) / (float)(counter_freq->QuadPart); //milliseconds
+
+        }
+
+    } 
+
+    *prev_cpu_cycle_count = *cpu_cycle_count;
+    *prev_end_timer = *end_timer;
 
 }
 
@@ -621,7 +674,7 @@ main_window_callback(
                 HDC devicecontext1 = BeginPaint(window, &paintstruct1);
                 int x = paintstruct1.rcPaint.top;
                 int y = paintstruct1.rcPaint.left;            
-                int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left;
+                int w = paintstruct1.rcPaint.right - paintstruct1.rcPaint.left; //TODO: are w and h used variables?
                 int h = paintstruct1.rcPaint.bottom - paintstruct1.rcPaint.top;
                 //static DWORD raster_code = WHITENESS;       
                 update_window(devicecontext1, p_backbuffer,x,y,dim.width,dim.height);
@@ -707,7 +760,8 @@ keyboard_message_queue(MSG * message, game_input * input){
             bool pressed = ( (lparam_bits & (1 << 31)) == 0 );   //bit 31 indicates transition state 0 = is down
             
             //bool started_down;  //TODO: This is currently copied with a function. Maybe switch to value provided by Windows?
-            bool ended_down; 
+            //bool ended_down;  //TODO: Remove this?
+
             uint16 transition_change = 0;
             if(previous_state == pressed){transition_change = 1;}            
 
@@ -788,7 +842,7 @@ internal void keyboard_message_queue_events(MSG * message, game_input_events * i
             lparam_bits = message->lParam;
             bool alt_pressed = ( (lparam_bits & (1<<29)) == 1 ); //is alt key pressed at the same time as key in message
 
-            if(virtual_key_code == VK_F4){ program_running = false; } //TODO add controlled shutdown sequence
+            if(virtual_key_code == VK_F4 && alt_pressed){ program_running = false; } //TODO add controlled shutdown sequence
 
         } break;
 
@@ -939,14 +993,19 @@ int CALLBACK WinMain(
             int32 samples_used;
 
             //Variables for performance counter
-            unsigned long long prev_cpu_cycle_count = 0;
             unsigned long long cpu_cycle_count = 0;
+            unsigned long long prev_cpu_cycle_count = 0;            
+            LARGE_INTEGER end_timer;
             LARGE_INTEGER prev_end_timer;
             prev_end_timer.QuadPart = 0;
+            long long program_loop_time;
 
             //Structs for perfromance timers
+            perf_timer program_loop_timer;
+            program_loop_timer.id = 0;
             perf_timer game_main_timer;  
             game_main_timer.id = 1; 
+
             
             //Structs for passing all inputs to the game //TODO: Event based input not used for now
             game_input input;
@@ -962,17 +1021,26 @@ int CALLBACK WinMain(
            
             //Temporary FPS targets
             uint16 display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            uint16 game_frame_rate = display_refresh_rate / 4;  // and set reasonalbe game FPS
-            
+            uint16 target_frame_rate = display_refresh_rate / 2;  // and set reasonalbe game FPS
+            float target_frame_time_ms = 1000.0f / (float)target_frame_rate; 
+        
+            //Set Windows timer to minimum resolution
+            bool timer_pediod_set = false;
+            UINT u_period = 1;
+            MMRESULT timer_error_code = timeBeginPeriod(u_period);
+            if(timer_error_code == TIMERR_NOERROR){timer_pediod_set = true;}
 
             //Program loop 
-            while(program_running)
+            while(program_running)            
             {
-                //Start timer                
+                //Start timer //TODO: This timer doesnt do anything? Frquency is needed in frame pacing               
                 LARGE_INTEGER start_timer;
                 LARGE_INTEGER counter_freq;
-                QueryPerformanceCounter(&start_timer);
+                QueryPerformanceCounter(&start_timer);  
                 QueryPerformanceFrequency(&counter_freq);
+
+                //Benchmark timer
+                perf_timer_start(&program_loop_timer);    
 
                 //Reset input struct                 
                 input = {};
@@ -1013,7 +1081,7 @@ int CALLBACK WinMain(
                 prev_input = input;
 
                 //GAME MAIN FUNCTION
-                perf_timer_start(&game_main_timer);
+                perf_timer_start(&game_main_timer);               
 
                 //Defined again every loop because backbuffer dimensions may change with window size.
                 game_backbuffer bitmap;
@@ -1027,8 +1095,15 @@ int CALLBACK WinMain(
                 //Fills image and sound buffers with latest data
                 game_update_and_render(&game_memory, &bitmap, &game_sound_output, samples_used, input); 
 
-                //Writes to buffer being played
+                //Writes to buffer being played. Returns number of used samples.
                 samples_used = sound_buffer_copy(&game_sound_output, sound_buffer);
+
+                //Time the game loop and wait if needed
+                end_timer.QuadPart = 0;
+                loop_timer_and_sleep(
+                    &cpu_cycle_count, &prev_cpu_cycle_count, 
+                    &end_timer, &prev_end_timer, &counter_freq, 
+                    &program_loop_time, &target_frame_time_ms, timer_pediod_set);
 
                 //Updates the image
                 window_dimensions dimensions = get_window_dimensions(window);
@@ -1037,30 +1112,12 @@ int CALLBACK WinMain(
                 ReleaseDC(window, device_context);      //This works. Why DC has to be released?
                 
                 perf_timer_stop(&game_main_timer);
+                perf_timer_stop(&program_loop_timer);
+                
+            } //Program loop ends
 
-
-                //End timer
-                cpu_cycle_count = __rdtsc(); //long long is 64 bit?
-                unsigned long long program_loop_cpu_cycles = cpu_cycle_count - prev_cpu_cycle_count;
-
-                LARGE_INTEGER end_timer;
-                QueryPerformanceCounter(&end_timer);
-                long long program_loop_time = end_timer.QuadPart - prev_end_timer.QuadPart;
-
-                float frame_time =  1000.0f * (float)program_loop_time   / (float)(counter_freq.QuadPart); //milliseconds
-                float fps = 1000.0f / frame_time;
-                float cpu_cycles = ( (float)program_loop_cpu_cycles ) / 1000000.0f ;
-
-                char fps_text_buffer[512];
-                sprintf(fps_text_buffer, "Frame: %.02f ms, %.02f fps, %.02f M cpu cycles " ,frame_time, fps, cpu_cycles);
-                OutputDebugStringA(fps_text_buffer);
-
-                prev_cpu_cycle_count = cpu_cycle_count;
-                prev_end_timer = end_timer;
-
-                //Sleep for 1 ms to reduce loop speed TODO: remove this when loop is slow enough
-                //Sleep(1);
-            }
+            //Reset Windows timer resolution
+            timeEndPeriod(u_period);
 
         } //TODO WINDOWHANDLE ERROR      
     } //TODO: Registerclass error 
