@@ -97,3 +97,6 @@ Daily 17 done. Keyboard input feels quite good. Still need to get a gamepad to t
 
 Day 21: 28.6.2025
 Daily 18 done. Also modified keyboard input to make switching direction faster with arrow keys. Tested higher compiler warning level, seems useful but it doesn't understand Windows functions for example. Will need to disable some warnings or not use it constantly.
+
+
+Day 22: 30.6.2025

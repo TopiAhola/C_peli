@@ -1,3 +1,4 @@
+///////////////////////////////////////////////////
 TODO:
 
 Learn to read memory and debug by stepping.
@@ -6,17 +7,18 @@ Learn to read memory and debug by stepping.
 Replace Directsound with Xaudio
 
 
-Key up shouldn't count as input for controlling things? Otherwise liftin a key stalls other keypresses.
-Or specify priority for inputs? 
-
-
 Document build environment with pictures.
+
 
 Get proper gamepad and test xinput.
 
-KB input should be written to an array with timestamps and passed in to game function.
 
+KB input should be written to an array with timestamps and passed in to game function. Or some other way that enables higher physics tickrate
 
+///////////////////////////////////////////////////
 Done:
 
 Korjaa OutputDebugString debuggausta varten...
+
+Key up shouldn't count as input for controlling things? Otherwise liftin a key stalls other keypresses.
+Or specify priority for inputs? (Fixed))
