@@ -6,6 +6,8 @@ Learn to read memory and debug by stepping.
 
 Replace Directsound with Xaudio
 
+Change sound write to just before the read cursor.
+
 
 Document build environment with pictures.
 

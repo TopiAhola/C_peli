@@ -410,22 +410,22 @@ loop_timer_and_sleep(
     LARGE_INTEGER * prev_end_timer,
     LARGE_INTEGER * counter_freq,
     long long * program_loop_time,
-    float * target_frame_time_ms,
+    float * target_frame_time_ms,       //TODO: pointer is bigger than float32... Just pass the value.
     bool timer_pediod_set
 ){
     *cpu_cycle_count = __rdtsc(); //long long is 64 bit?
-    unsigned long long program_loop_cpu_cycles = cpu_cycle_count - prev_cpu_cycle_count;
+    unsigned long long program_loop_cpu_cycles = *cpu_cycle_count - *prev_cpu_cycle_count;
     
     QueryPerformanceCounter(end_timer);
     *program_loop_time = end_timer->QuadPart - prev_end_timer->QuadPart;
 
     float frame_time_ms =  1000.0f * ((float) (*program_loop_time)) / (float)(counter_freq->QuadPart); //milliseconds
     float fps = 1000.0f / frame_time_ms;
-    float cpu_cycles = ( (float)program_loop_cpu_cycles ) / 1000000.0f ;       
+    float cpu_cycles_millions = ( (float)program_loop_cpu_cycles ) / 1000000.0f ;       
     float sleep_time =  *target_frame_time_ms - frame_time_ms;    
     
     char fps_text_buffer[512];
-    sprintf(fps_text_buffer, "Frame: %.02f ms, %.02f fps if uncapped, %.02f M cpu cycles, sleep for: %.02f ms" ,frame_time_ms, fps, cpu_cycles, sleep_time);
+    sprintf(fps_text_buffer, "Frame: %.02f ms, %.02f fps if uncapped, %.02f M cpu cycles, sleep for: %.02f ms" ,frame_time_ms, fps, cpu_cycles_millions, sleep_time);
     OutputDebugStringA(fps_text_buffer);
     
     //Waits for frame time
@@ -454,7 +454,7 @@ loop_timer_and_sleep(
 
 
 /////////////////////////////////////////////////////////////
-//FILE IO
+//DEBUGGING
 
 
 ////////////////////////////////
@@ -558,6 +558,72 @@ platform_debug_read_file(char* filename){
 
 }
 
+internal void
+platform_debug_draw_audio_cursor(offscreen_bitmap * p_backbuffer, LPDIRECTSOUNDBUFFER sound_buffer){
+    
+    //Get sound buffer capabilities
+    DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
+    capabilities.dwSize = sizeof(DSBCAPS);      //size is required to use the struct            
+    sound_buffer->GetCaps(&capabilities);   
+
+
+    //Get position of cursorS
+    local_static DWORD previous_screen_play_cursor_position = 0;
+    local_static DWORD previous_screen_write_cursor_position = 0;
+    DWORD play_cursor_position = 0;
+    DWORD write_cursor_position = 0;        
+    sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_position);
+
+    //Normalize cursor position to bitmap size:    
+    DWORD screen_play_cursor_position = (play_cursor_position * (DWORD)p_backbuffer->width) / capabilities.dwBufferBytes;
+    DWORD screen_write_cursor_position = (write_cursor_position * (DWORD)p_backbuffer->width) / capabilities.dwBufferBytes;
+
+    //Draw the buffer and cursors
+    int buffer_bar_thickness = p_backbuffer->height /10;
+    uint32 * row_pointer; 
+    uint32 * pixel_pointer;
+    uint8 * subpixel_pointer;
+    for(int row=0; row < buffer_bar_thickness; row++){
+        row_pointer =  (uint32 *)p_backbuffer->p_memory + (row * (p_backbuffer->pitch / p_backbuffer->bytes_per_pixel )) ;
+
+        pixel_pointer = row_pointer + screen_play_cursor_position;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 0;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 0;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 255;      //Red
+
+        pixel_pointer = row_pointer + screen_write_cursor_position;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 0;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 255;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 0;      //Red
+
+        pixel_pointer = row_pointer + previous_screen_play_cursor_position;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 0;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 0;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 255;      //Red
+
+        pixel_pointer = row_pointer + previous_screen_write_cursor_position;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 0;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 255;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 0;      //Red       
+    }
+
+    previous_screen_play_cursor_position = screen_play_cursor_position;
+    previous_screen_write_cursor_position = screen_write_cursor_position;
+
+}
+
 
 
 /////////////////////////////////////////////////////////////
@@ -614,8 +680,7 @@ resize_dib_section(offscreen_bitmap * bitmap,int width, int height){
      
 }
 
-////////////////////////////////
-//Function to update window bitmap size. 
+//////////////////////////////// 
 // Copies a rectangle to another rect, scales if needed. Destination is at the pointer
 internal void 
 update_window(HDC devicecontext, offscreen_bitmap * bitmap ,int x, int y, int window_width, int window_height){
@@ -1033,10 +1098,10 @@ int CALLBACK WinMain(
             //Program loop 
             while(program_running)            
             {
-                //Start timer //TODO: This timer doesnt do anything? Frquency is needed in frame pacing               
-                LARGE_INTEGER start_timer;
+                //Start timer               
+                LARGE_INTEGER start_timer;  
                 LARGE_INTEGER counter_freq;
-                QueryPerformanceCounter(&start_timer);  
+                QueryPerformanceCounter(&start_timer);  //TODO: This timer doesnt do anything? Frquency is needed in frame pacing 
                 QueryPerformanceFrequency(&counter_freq);
 
                 //Benchmark timer
@@ -1098,19 +1163,30 @@ int CALLBACK WinMain(
                 //Writes to buffer being played. Returns number of used samples.
                 samples_used = sound_buffer_copy(&game_sound_output, sound_buffer);
 
-                //Time the game loop and wait if needed
-                end_timer.QuadPart = 0;
-                loop_timer_and_sleep(
-                    &cpu_cycle_count, &prev_cpu_cycle_count, 
-                    &end_timer, &prev_end_timer, &counter_freq, 
-                    &program_loop_time, &target_frame_time_ms, timer_pediod_set);
+
+//#if DEVELOPER_BUILD
+                //Debug display for audio buffer
+                platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
+
+
+//#endif
 
                 //Updates the image
                 window_dimensions dimensions = get_window_dimensions(window);
                 HDC device_context = GetDC(window);
                 update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
                 ReleaseDC(window, device_context);      //This works. Why DC has to be released?
+
                 
+                //Time the game loop and wait if needed
+                end_timer.QuadPart = 0;
+                loop_timer_and_sleep(
+                    &cpu_cycle_count, &prev_cpu_cycle_count, 
+                    &end_timer, &prev_end_timer, &counter_freq, 
+                    &program_loop_time, &target_frame_time_ms, timer_pediod_set
+                );
+                
+
                 perf_timer_stop(&game_main_timer);
                 perf_timer_stop(&program_loop_timer);
                 
