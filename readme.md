@@ -49,7 +49,7 @@ Files
 <li>Q_A_O - Questions, answers and observations  </li>        
 <li>Notes - Maybe for documenting random things </li>
 <li>Compiler and CMD - Compiler settings and notes </li>
-<li>Win_notes - Notes about developing in Windows</li>
+<li>Win_notes - Notes about Windows platform</li>
 <li>.bat files - For running the compilers manually</li>
 </ol>
 
@@ -58,7 +58,7 @@ Folders:
 <li>Build_environment - Subfolders for various build versions</li>
 <li>Dailys - Code following daily videos</li>
 <li>Tests - Random testing </li>
-<li>Tools - Self made dev tools</li>
+<li>Tools - Self made tools</li>
 
 </ul>
 
@@ -71,8 +71,8 @@ Folders:
 <br>
 <h2>Notes</h2>
 <p>
-What is hard: 
-<li>Windows environmental stuff is hard. <li>Working on a coding project alongside work is also hard. 
+Challenges: 
+<li>Windows platform layer.
 <li>Compiler, header files.
 <li>
 </p>
