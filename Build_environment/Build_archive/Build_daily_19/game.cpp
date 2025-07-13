@@ -20,74 +20,33 @@
 //SOUND
 
 //Writes test sound to given sound buffer 
-internal void sound_test(game_soundbuffer * soundbuffer, sound_sample_counter sample_counter, float32 x_location_relative, float32 y_location_relative, uint32 frame_counter){  
-    //TODO: if bad struct in argumets will this crash?  
-    //TODO: Remove whole struct, average can be counted here locally...  
+internal void sound_test(game_soundbuffer * soundbuffer, uint32 samples_used, float32 x_location_relative, float32 y_location_relative){  
+    //TODO: This crashes    
     
-
-//#if PERFORMANCE_MODE == 1  //Write less samples based on samples used data
-
-//Continous sine wave
-    float32 amplitude = 4000.0f * x_location_relative;
-    uint32 freq =  (uint32)( 400.0f * y_location_relative );     
-    if(freq <= 0){freq = 1;} //No smaller than 1 frequencies
-    
-    //Write up to 2 frames of sound. This will cause audio cuts if frame time fluctuates 2x
-    uint32 samples_to_write = 4 * sample_counter.samples_used_average; //Up to 2 frames of buffer
-    float32 sample_number = (float32)sample_counter.samples_used_total; 
-
-    //TODO: Phase of the sinewave should be function of game time. There is no timer currently other than audio sample usage!
-
-    //Write to buffer memory
-    float32 period = (float32)( (soundbuffer->sample_rate ) / freq );
-    int16 value;
-    int16 * channel_p = soundbuffer->memory_p;  
-    for(uint32 sample = 0; sample < samples_to_write; sample++){
-        
-        //Sine wave function value
-        float32 phase = sinf(( 2.0f * pi32 * ( sample_number /  period ) ));
-        value = (int16)(amplitude * phase) ;
-
-        *channel_p = value;  //left channel 
-        channel_p++;
-        *channel_p = value;  //right channel
-        channel_p++;
-        sample_number++;
-    } 
-    
-    soundbuffer->last_write_sample_index = sample_counter.samples_used_total;
-
-/*
-#elif PERFORMANCE_MODE == 0
     //Continous sine wave
     float32 amplitude = 2000.0f * x_location_relative;
     int32 freq =  (int32)( 400.0f * y_location_relative );     
-    if(freq <= 0){freq = 1;} //No smaller than 1 frequencies
-    
-    uint32 samples_to_write = ( soundbuffer->size / soundbuffer->bytes_per_sample );  //This writes whole buffer full
-    local_static uint32 samples_used = 0;
-    samples_used =+ sample_counter.samples_used;  //Wave is genereted from the point it has been copied to playing buffer
 
+    if(freq <= 0){freq = 1;} 
+
+    uint32 sample_counter = samples_used;  //Wave is genereted from the point it has been copied to playing buffer
+    int32 period = ((soundbuffer->sample_rate ) / freq);
 
      //Write to buffer memory
-    int32 period = ((soundbuffer->sample_rate ) / freq);
     int16 value;
     int16 * channel_p = soundbuffer->memory_p;  
-    for(uint32 sample = 0; sample < samples_to_write; sample++){
+    for(uint32 sample = 0; sample < ( soundbuffer->size / soundbuffer->bytes_per_sample ); sample++){
         
         //Sine wave function value
-        float32 phase = sinf( (2.0f * pi32 * ( (float32)samples_used) / ((float32)period) ) );
+        float32 phase = sinf( (2.0f * pi32 * ( (float32)sample_counter) / ((float32)period) ) );
         value = (int16)(amplitude * phase) ;
 
         *channel_p = value;  //left channel 
         channel_p++;
         *channel_p = value;  //right channel
         channel_p++;
-        //samples_used++;   //Why is this iterated?     
+        sample_counter++;        
     }
-#endif
-*/
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -282,13 +241,9 @@ game_update_and_render(
     memory_pool * game_memory,
     game_backbuffer * bitmap, 
     game_soundbuffer * soundbuffer, 
-    sound_sample_counter sample_counter, 
+    uint32 samples_used, 
     game_input input
 ){
-    //Count the frame
-    local_static uint32 frame_counter = 0;      
-    frame_counter =+ 1;                 //Has to start from 1
-
     //Produce normalized inputs for x, y in -1...1 range.   
     float32 x_input = 0;
     float32 y_input = 0;
@@ -313,7 +268,7 @@ game_update_and_render(
 
     //Draw and sound test
     draw_test(bitmap, x_location, y_location);
-    sound_test(soundbuffer, sample_counter, x_location_relative, y_location_relative, frame_counter);
+    sound_test(soundbuffer,samples_used, x_location_relative, y_location_relative);
 
     
     char * filename = "read_target";
@@ -325,7 +280,6 @@ game_update_and_render(
 
     //write_to_memory(game_memory->base_memory, gigabytes(4));  //Writes 4 GB for testing 
     
-
 }
 
   

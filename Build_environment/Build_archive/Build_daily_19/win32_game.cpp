@@ -209,58 +209,30 @@ internal LPDIRECTSOUNDBUFFER load_dsound(HWND window, INT32 samples_per_second, 
 ////////////////////////////////
 //Copies game output buffer to playing buffer. Returns amount of copied bytes 
 
-internal sound_sample_counter
+internal int32
 sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER sound_buffer){
-    //Get properties of sound_buffer
+//Get properties of sound_buffer
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
     capabilities.dwSize = sizeof(DSBCAPS);      //size is required to use the struct            
     sound_buffer->GetCaps(&capabilities);
     DWORD buffer_size = capabilities.dwBufferBytes;
 
-    //Properties of source buffer
-    int bytes_per_sample = game_sound_output->bytes_per_sample;
-
     //Get position of Play cursor
     local_static DWORD previous_play_cursor_position = 0;
-    DWORD play_cursor_position;
-    DWORD write_cursor_positon;
-    DWORD write_cursor_offset = 0;
-    sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_positon);
-
-    //TODO: There should be only 1 frame counter in the program
-    local_static DWORD frame_count = 0;
-    frame_count++; 
-
-    local_static DWORD samples_used_total = 0;
-    local_static DWORD samples_used_average = 0;
-    local_static uint32 samples_used_maximum = 0; 
-    samples_used_average = samples_used_total / frame_count;
-    local_static uint32 samples_used = 0;
-    local_static uint32 previous_samples_used = 0;
-
-     
+    DWORD play_cursor_position;     
+    sound_buffer->GetCurrentPosition(&play_cursor_position,0);
+       
     //Set lock segments
-    DWORD lock_start_byte;   
+    DWORD lock_start_byte = previous_play_cursor_position;  
     DWORD lock_size;
     LPVOID segment1_p;
     DWORD segment1_size;
     LPVOID segment2_p;          
-    DWORD segment2_size;     
-    
+    DWORD segment2_size;    
 
-    // This is needed if offset is used with write cursor
-    if((write_cursor_positon + write_cursor_offset) > buffer_size){
-        lock_start_byte = (write_cursor_positon + write_cursor_offset) - buffer_size;
-    } else if((write_cursor_positon + write_cursor_offset) <= buffer_size) {
-        lock_start_byte = (write_cursor_positon + write_cursor_offset);
-    } else {
-        assert(0);  //buffer lock should always be inside the buffer
-    }
-    
-    lock_size = 8 * samples_used_average; //Write 2 frames on average NOTE: sample count vs. byte count!
+    //Return value is number of samples copied
+    local_static uint32 sample_counter = 0;
 
-    
-    /*
     if(play_cursor_position > previous_play_cursor_position){ 
         lock_size = ( play_cursor_position - previous_play_cursor_position  );
         OutputDebugStringA("sound_test: Play cursor position > previous posttion.\n");
@@ -274,20 +246,6 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
         lock_size = 0;
         OutputDebugStringA("sound_test: Play cursor position == previous posttion.\n");
     }
-    */
-
-    
-    if(play_cursor_position > previous_play_cursor_position){
-        samples_used = (play_cursor_position - previous_play_cursor_position) / bytes_per_sample;
-    } else if(play_cursor_position < previous_play_cursor_position) {
-        samples_used = ((buffer_size - previous_play_cursor_position) + play_cursor_position ) / bytes_per_sample;
-    } else {
-        samples_used = 0;
-    }
-    samples_used_total = samples_used_total + samples_used;
-
-    int32 source_pointer_offset_half_sample = 2 * (samples_used_total - game_sound_output->last_write_sample_index);
-    if(source_pointer_offset_half_sample < 0){source_pointer_offset_half_sample = 0;}
     
     if(lock_size > 0){        
         sound_buffer->Lock(         
@@ -300,8 +258,11 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
             0
         );
 
-        //Write to locked segments using pointers segment1_p, segment2_p        
-        INT16 * source_half_sample_p = game_sound_output->memory_p + source_pointer_offset_half_sample;
+         
+        //Write to locked segments using pointers segment1_p, segment2_p
+        int bytes_per_sample = game_sound_output->bytes_per_sample;
+        
+        INT16 * source_half_sample_p = game_sound_output->memory_p;
         INT16 * half_sample_p;       
         
 
@@ -314,6 +275,8 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
 
             *half_sample_p = *source_half_sample_p;  //right channel
             half_sample_p++;  source_half_sample_p++;
+
+            sample_counter++;            
         }
 
         //Segment 2 writes
@@ -325,6 +288,8 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
 
             *half_sample_p = *source_half_sample_p;  //right channel
             half_sample_p++;  source_half_sample_p++;
+
+            sample_counter++;  
         }
 
         sound_buffer->Unlock(       
@@ -335,21 +300,7 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
         );
     }
 
-    //Return value is a sample counter
-    sound_sample_counter sample_counter;
-
-    sample_counter.samples_used = samples_used;
-    if(samples_used > sample_counter.samples_used_maximum){
-        sample_counter.samples_used_maximum = samples_used;
-    }
-    sample_counter.samples_used_total = samples_used_total;
-    sample_counter.samples_used_average = samples_used_average;
-
-
-    //Set previous value as current
     previous_play_cursor_position = play_cursor_position;
-    previous_samples_used = samples_used;
-
     return sample_counter;
 }
 
@@ -1100,11 +1051,11 @@ int CALLBACK WinMain(
             sound_buffer->Play(0,0,DSBPLAY_LOOPING); //Buffer can be played even if empty     
 
             //Create buffer for game return sound to. Will be copied to sound_buffer to be played        
-            game_soundbuffer game_sound_output = {0, 48000, 192000, 0, 4};
+            game_soundbuffer game_sound_output = {48000, 4, 192000, 0};
             game_sound_output.memory_p = (int16*) VirtualAlloc(0, game_sound_output.size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
-            //Variable for sound samples played during loop
-            sound_sample_counter sample_counter;
+            //Variable for total sound samples played
+            int32 samples_used;
 
             //Variables for performance counter
             unsigned long long cpu_cycle_count = 0;
@@ -1207,10 +1158,10 @@ int CALLBACK WinMain(
                 bitmap.pitch = backbuffer.pitch;
 
                 //Fills image and sound buffers with latest data
-                game_update_and_render(&game_memory, &bitmap, &game_sound_output, sample_counter, input); 
+                game_update_and_render(&game_memory, &bitmap, &game_sound_output, samples_used, input); 
 
                 //Writes to buffer being played. Returns number of used samples.
-                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer);
+                samples_used = sound_buffer_copy(&game_sound_output, sound_buffer);
 
 
 //#if DEVELOPER_BUILD
@@ -1227,7 +1178,7 @@ int CALLBACK WinMain(
                 ReleaseDC(window, device_context);      //This works. Why DC has to be released?
 
                 
-                //Time the game loop and wait if needed                
+                //Time the game loop and wait if needed
                 end_timer.QuadPart = 0;
                 loop_timer_and_sleep(
                     &cpu_cycle_count, &prev_cpu_cycle_count, 

@@ -1,10 +1,6 @@
 #if !defined(GAME_HEADER) //This prevents defining this file twice in another file.
 
 
-//Temporary stuff for testing:
-
-
-
 ////////////////////////////////////////////////////////////////
 //MACROS
 
@@ -60,21 +56,11 @@ struct game_backbuffer{
 };
 
 
-struct game_soundbuffer {  
-    int16 * memory_p;  
-    uint32 sample_rate = 48000;    
-    uint32 size = 192000;   
-    uint32 last_write_sample_index;    
+struct game_soundbuffer {    
+    uint32 sample_rate = 48000;
     uint8 bytes_per_sample = 4;
-};
-
-//SOUND
-
-struct sound_sample_counter {
-    uint32 samples_used;
-    uint32 samples_used_maximum;  
-    uint32 samples_used_total;
-    uint32 samples_used_average;
+    uint32 size = 192000;
+    int16 * memory_p;
 
 };
 
@@ -214,7 +200,7 @@ internal bool32 platform_debug_free_file_memory(void * file_p );
 //FUNCTIONS
 
 //time (for variable rate rendering), inputs, pointer to bitmap and sound buffer
-static void game_update_and_render(memory_pool * game_memory, game_backbuffer * bitmap, game_soundbuffer * soundbuffer, sound_sample_counter samples_used, game_input input);
+static void game_update_and_render(memory_pool * game_memory, game_backbuffer * bitmap, game_soundbuffer * soundbuffer, uint32 samples_used, game_input input);
 
 
 
