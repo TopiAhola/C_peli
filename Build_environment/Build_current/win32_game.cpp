@@ -30,6 +30,20 @@ struct window_dimensions {
     int height;
 };
 
+struct timestamps {
+    //Times in seconds!
+    float32  frame_start;
+    float32  message_loop_start;
+    float32  gamepad_input_start;
+    float32  game_function_start;
+    float32  game_function_end;
+    float32  copy_sound_start;
+    float32  flip_image_start;
+    float32  flip_image_end;
+
+
+};
+
 
 
 /////////////////////////////////////////////////////////////
@@ -402,10 +416,27 @@ get_pad_inputs(game_input * input){
 }
 
 /////////////////////////////////////////////////////////////
-//BENCHMARKS        TODO: this should be a class?
+//BENCHMARKS        
 
-//TODO: One struct for all benchmark times with one unified print function
+////////////////////////////////
+//NEW TIMERS
 
+internal void write_timestamp(float32 * timestamp, LARGE_INTEGER counter_freq){
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+    *timestamp = ((float32)counter.QuadPart) / ((float32)counter_freq.QuadPart);
+
+
+}
+
+internal void print_timestamps(timestamps * current_timestamps){
+
+
+}
+
+
+
+//TODO: Remove old becnmark stuff
 ////////////////////////////////
 struct perf_timer {
     int id = 0;
@@ -445,7 +476,7 @@ internal void perf_timer_stop(perf_timer * timer_struct){
     float time_passed_ms =  1000.0f * (float)timer_cycles_passed   / (float)(timer_struct->freq);     
     float cpu_cycles = ( (float)timer_cpu_cycles ) / 1000000.0f ;    
     
-    sprintf(timer_struct->timer_text_buffer, "Timer %d: %.02f ms, %.02f M cpu cycles " ,timer_struct->id, time_passed_ms, cpu_cycles);
+    sprintf(timer_struct->timer_text_buffer, "Debug: Timer %d: %.02f ms, %.02f M cpu cycles " ,timer_struct->id, time_passed_ms, cpu_cycles);
     OutputDebugStringA(timer_struct->timer_text_buffer);
 
 }
@@ -474,7 +505,7 @@ loop_timer_and_sleep(
     float sleep_time =  *target_frame_time_ms - frame_time_ms;    
     
     char fps_text_buffer[512];
-    sprintf(fps_text_buffer, "Frame: %.02f ms, %.02f fps if uncapped, %.02f M cpu cycles, sleep for: %.02f ms" ,frame_time_ms, fps, cpu_cycles_millions, sleep_time);
+    sprintf(fps_text_buffer, "OBSOLETE: Debug: Frame: %.02f ms, %.02f fps if uncapped, %.02f M cpu cycles, sleep for: %.02f ms" ,frame_time_ms, fps, cpu_cycles_millions, sleep_time);
     OutputDebugStringA(fps_text_buffer);
     
     //Waits for frame time
@@ -1106,6 +1137,9 @@ int CALLBACK WinMain(
             //Variable for sound samples played during loop
             sound_sample_counter sample_counter;
 
+            //            
+
+
             //Variables for performance counter
             unsigned long long cpu_cycle_count = 0;
             unsigned long long prev_cpu_cycle_count = 0;            
@@ -1117,8 +1151,8 @@ int CALLBACK WinMain(
             //Structs for perfromance timers
             perf_timer program_loop_timer;
             program_loop_timer.id = 0;
-            perf_timer game_main_timer;  
-            game_main_timer.id = 1; 
+            //perf_timer game_main_timer;  
+            //game_main_timer.id = 1; //TODO: remove as unnecessary
 
             
             //Structs for passing all inputs to the game //TODO: Event based input not used for now
@@ -1144,24 +1178,35 @@ int CALLBACK WinMain(
             MMRESULT timer_error_code = timeBeginPeriod(u_period);
             if(timer_error_code == TIMERR_NOERROR){timer_pediod_set = true;}
 
+            //Struct for timestamps       
+            timestamps previous_timestamps = {};
+            timestamps current_timestamps;
+
+            //Counter frequency needs to be queried just once
+            LARGE_INTEGER counter_freq;                
+            QueryPerformanceFrequency(&counter_freq);
+
+            //perf_timer for debugging
+            perf_timer frame_perf_timer;
+
             //Program loop 
             while(program_running)            
             {
-                //Start timer               
-                LARGE_INTEGER start_timer;  
-                LARGE_INTEGER counter_freq;
-                QueryPerformanceCounter(&start_timer);  //TODO: This timer doesnt do anything? Frquency is needed in frame pacing 
-                QueryPerformanceFrequency(&counter_freq);
+                //Start timer          
+                write_timestamp(&current_timestamps.frame_start, counter_freq);
+#if DEVELOPER_BUILD
+                //perf_timer start for debugging
+                perf_timer_start(&frame_perf_timer);
 
-                //Benchmark timer
-                perf_timer_start(&program_loop_timer);    
-
+#endif
                 //Reset input struct                 
                 input = {};
                 copy_prev_input_values(&input, &prev_input);  //TODO: this may be redundant because windows remebres previous state too!
                 input_events = {}; //Input events should be reset!
 
                 //Message loop
+                write_timestamp(&current_timestamps.message_loop_start, counter_freq);
+
                 while(message_bool = PeekMessage(        //PeekMessage gets messages if any //PeekMessage writes message to the given pointer and returns a "BOOL"
                     &message,                           //Pointer to a location to put message into
                     0,                                  //Handle. 0 means getting messagess for all windows?
@@ -1188,14 +1233,16 @@ int CALLBACK WinMain(
                 }       
 
                 //Get gamepad inputs into game_input struct
+                write_timestamp(&current_timestamps.gamepad_input_start, counter_freq);
+
                 get_pad_inputs(&input);
                 //get_pad_inputs(&input_events); //TODO: Pad inputs more granular than frame rate
 
                 //Set old input
                 prev_input = input;
 
-                //GAME MAIN FUNCTION
-                perf_timer_start(&game_main_timer);               
+                //GAME MAIN FUNCTION                             
+                write_timestamp(&current_timestamps.game_function_start, counter_freq);
 
                 //Defined again every loop because backbuffer dimensions may change with window size.
                 game_backbuffer bitmap;
@@ -1208,26 +1255,22 @@ int CALLBACK WinMain(
 
                 //Fills image and sound buffers with latest data
                 game_update_and_render(&game_memory, &bitmap, &game_sound_output, sample_counter, input); 
+                write_timestamp(&current_timestamps.game_function_end, counter_freq);
 
+
+                write_timestamp(&current_timestamps.copy_sound_start, counter_freq);
                 //Writes to buffer being played. Returns number of used samples.
                 sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer);
 
 
-//#if DEVELOPER_BUILD
+#if DEVELOPER_BUILD
                 //Debug display for audio buffer
                 platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
 
 
-//#endif
+#endif
 
-                //Updates the image
-                window_dimensions dimensions = get_window_dimensions(window);
-                HDC device_context = GetDC(window);
-                update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
-                ReleaseDC(window, device_context);      //This works. Why DC has to be released?
-
-                
-                //Time the game loop and wait if needed                
+                //Time the game loop and wait if needed    TODO: rework this completely            
                 end_timer.QuadPart = 0;
                 loop_timer_and_sleep(
                     &cpu_cycle_count, &prev_cpu_cycle_count, 
@@ -1235,10 +1278,28 @@ int CALLBACK WinMain(
                     &program_loop_time, &target_frame_time_ms, timer_pediod_set
                 );
                 
+                //Update the image
+                write_timestamp(&current_timestamps.flip_image_start, counter_freq);
 
-                perf_timer_stop(&game_main_timer);
-                perf_timer_stop(&program_loop_timer);
-                
+                window_dimensions dimensions = get_window_dimensions(window);
+                HDC device_context = GetDC(window);
+                update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
+                ReleaseDC(window, device_context);      //This works. Why DC has to be released?
+
+
+                //Print timestamps
+                write_timestamp(&current_timestamps.flip_image_end, counter_freq);
+                print_timestamps(&current_timestamps);
+                previous_timestamps = current_timestamps;
+
+#if DEVELOPER_BUILD
+                //Print CPU cycle use as well
+                perf_timer_stop(&frame_perf_timer);
+
+#endif
+
+
+
             } //Program loop ends
 
             //Reset Windows timer resolution

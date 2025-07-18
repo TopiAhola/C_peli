@@ -106,4 +106,5 @@ Day 23: 13.7.2025
 Daily 20 started. Sound buffer now writes at write cursor and can be offset in case of adjusting latency. Sinewave function still needs to be made function of time instead of audio sample. Learned the importance of naming variables descriptively, with units and not using hard coded numbers.
 
 
-Day 24:
+Day 24: 18.7.2025
+Started implementing time based sound and image sync with frame time.

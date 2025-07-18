@@ -16,7 +16,7 @@
 
 <h2>1. Idea</h3>
 <p> 
-Making a Windows based game coded in C by following Casey Muratori's video series Handmade Hero...
+Making a Windows based game coded in C by following Casey Muratori's video series Handmade Hero.
 </p>
 <br>
 
