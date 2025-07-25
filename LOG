@@ -108,3 +108,8 @@ Daily 20 started. Sound buffer now writes at write cursor and can be offset in c
 
 Day 24: 18.7.2025
 Started implementing time based sound and image sync with frame time.
+
+Day 25: 25.7.2025
+Started working on accurate frame timestamps. Debug printout of frame time data.
+Sound write latency needs to taken into account with frame pacing.
+

@@ -70,6 +70,10 @@ struct game_soundbuffer {
 
 //SOUND
 
+
+
+
+
 struct sound_sample_counter {
     uint32 samples_used;
     uint32 samples_used_maximum;  
@@ -159,7 +163,6 @@ struct game_input_events {
     pad_input pad[4];
     
 };
-
 
 
 //MEMORY

@@ -13,7 +13,7 @@
 
 
 /////////////////////////////////////////////////////////////
-//STRUCTS
+//STRUCTS FOR PLATFORM CODE
 
 struct offscreen_bitmap{
     BITMAPINFO info;
@@ -30,20 +30,43 @@ struct window_dimensions {
     int height;
 };
 
+//Timestamps
 struct timestamps {
     //Times in seconds!
-    float32  frame_start;
-    float32  message_loop_start;
-    float32  gamepad_input_start;
-    float32  game_function_start;
-    float32  game_function_end;
-    float32  copy_sound_start;
-    float32  flip_image_start;
-    float32  flip_image_end;
+    
+    float32 frame_start;
+    float32 message_loop_start;
+    float32 gamepad_input_start;
+    float32 game_function_start;
+    float32 game_function_end;
+    float32 copy_sound_start;
+    float32 copy_sound_end;
+    float32 flip_image_start;
+    float32 flip_image_end;
 
-
+    float32 message_loop_duration;
+    float32 input_duration;
+    float32 game_function_duration;
+    float32 copy_sound_duration;
+    float32 flip_image_duration;
+    float32 frame_start_to_end;
+    float32 frame_end_to_end;
+    float32 wait_time;
 };
 
+
+struct platform_frame_time_data {
+    uint32 display_refresh_rate = 120;                  //TODO: get display rate from Windows
+    uint32 frame_counter;
+
+    float32 unbuffered_frame_time_avg;
+    float32 unbuffered_frame_time_max;
+    float32 target_frame_time; 
+    float32 sound_delay_avg;
+    float32 last_unbuffered_frame_times[10];
+    float32 last_sound_delays[10];   
+    
+};
 
 
 /////////////////////////////////////////////////////////////
@@ -224,7 +247,12 @@ internal LPDIRECTSOUNDBUFFER load_dsound(HWND window, INT32 samples_per_second, 
 //Copies game output buffer to playing buffer. Returns amount of copied bytes 
 
 internal sound_sample_counter
-sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER sound_buffer){
+sound_buffer_copy(
+        game_soundbuffer * game_sound_output, 
+        LPDIRECTSOUNDBUFFER sound_buffer, 
+        timestamps * current_timestamps,
+        platform_frame_time_data * frame_time_data
+    ){
     //Get properties of sound_buffer
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
     capabilities.dwSize = sizeof(DSBCAPS);      //size is required to use the struct            
@@ -233,6 +261,7 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
 
     //Properties of source buffer
     int bytes_per_sample = game_sound_output->bytes_per_sample;
+
 
     //Get position of Play cursor
     local_static DWORD previous_play_cursor_position = 0;
@@ -274,22 +303,6 @@ sound_buffer_copy(game_soundbuffer * game_sound_output, LPDIRECTSOUNDBUFFER soun
     lock_size = 8 * samples_used_average; //Write 2 frames on average NOTE: sample count vs. byte count!
 
     
-    /*
-    if(play_cursor_position > previous_play_cursor_position){ 
-        lock_size = ( play_cursor_position - previous_play_cursor_position  );
-        OutputDebugStringA("sound_test: Play cursor position > previous posttion.\n");
-
-
-    } else if(play_cursor_position < previous_play_cursor_position) { 
-        lock_size = ( (play_cursor_position + (buffer_size - previous_play_cursor_position) )  );
-        OutputDebugStringA("sound_test: Play cursor position < previous posttion.\n");
-
-    } else {
-        lock_size = 0;
-        OutputDebugStringA("sound_test: Play cursor position == previous posttion.\n");
-    }
-    */
-
     
     if(play_cursor_position > previous_play_cursor_position){
         samples_used = (play_cursor_position - previous_play_cursor_position) / bytes_per_sample;
@@ -423,18 +436,66 @@ get_pad_inputs(game_input * input){
 
 internal void write_timestamp(float32 * timestamp, LARGE_INTEGER counter_freq){
     LARGE_INTEGER counter;
-    QueryPerformanceCounter(&counter);
-    *timestamp = ((float32)counter.QuadPart) / ((float32)counter_freq.QuadPart);
+    WINBOOL success = QueryPerformanceCounter(&counter);
+    if(success){
+        *timestamp = ((float32)counter.LowPart) / ((float32)counter_freq.QuadPart);
+    }
+}
 
+internal void print_timestamps(timestamps * current_timestamps, timestamps * previous_timestamps){
+    char text_buffer[1024];
+    sprintf(text_buffer, 
+        "DEBUG PRINT: frame_start: %f message_loop_start:%f gamepad_input_start:%f game_function_start: %f game_function_end: %f copy_sound_start:%f flip_image_start:%f flip_image_end:%.02f ",        
+        current_timestamps->frame_start,
+        current_timestamps->message_loop_start,
+        current_timestamps->gamepad_input_start,
+        current_timestamps->game_function_start,
+        current_timestamps->game_function_end,
+        current_timestamps->copy_sound_start,
+        current_timestamps->flip_image_start,
+        current_timestamps->flip_image_end
+    );
+    OutputDebugStringA(text_buffer);
+
+    current_timestamps->message_loop_duration = current_timestamps->gamepad_input_start - current_timestamps->message_loop_start;
+    current_timestamps->input_duration =  current_timestamps->game_function_start - current_timestamps->gamepad_input_start;
+    current_timestamps->game_function_duration = current_timestamps->game_function_end - current_timestamps->game_function_start;
+    current_timestamps->copy_sound_duration = current_timestamps->copy_sound_end - current_timestamps->copy_sound_start;
+    current_timestamps->flip_image_duration = current_timestamps->flip_image_end - current_timestamps->flip_image_start;
+    current_timestamps->frame_start_to_end = current_timestamps->flip_image_end - current_timestamps->frame_start;
+    current_timestamps->frame_end_to_end = current_timestamps->flip_image_end - previous_timestamps->flip_image_end;
+
+    char text_buffer_2[1024];
+    sprintf(text_buffer_2, 
+        "DEBUG PRINT: Message loop duration:: %f  input_duration:%f  game_function_duration:%f  copy_sound_duration: %f  flip_image_duration: %f  frame_start_to_end:%f  frame_end_to_end:%f  wait_time:%f  ",        
+        current_timestamps->message_loop_duration,
+        current_timestamps->input_duration,
+        current_timestamps->game_function_duration,
+        current_timestamps->copy_sound_duration, 
+        current_timestamps->flip_image_duration,
+        current_timestamps->frame_start_to_end,
+        current_timestamps->frame_end_to_end,
+        current_timestamps->wait_time
+    );
+    OutputDebugStringA(text_buffer_2);
+
+    float32 fps = 1.0f / current_timestamps->frame_end_to_end;
+    float32 uncapped_fps = 1.0f / (current_timestamps->frame_end_to_end - current_timestamps->wait_time);
+
+    char text_buffer_3[512];
+    sprintf(text_buffer_3, 
+        "DEBUG PRINT: Frame time: %f    Wait time: %f    FPS: %f    Uncapped FPS: %f ",        
+        current_timestamps->frame_end_to_end,
+        current_timestamps->wait_time,
+        fps,
+        uncapped_fps    
+    );
+    OutputDebugStringA(text_buffer_3);
 
 }
 
-internal void print_timestamps(timestamps * current_timestamps){
-
-
-}
-
-
+////////////////////////////////
+//OLD TIMERS
 
 //TODO: Remove old becnmark stuff
 ////////////////////////////////
@@ -1136,24 +1197,6 @@ int CALLBACK WinMain(
 
             //Variable for sound samples played during loop
             sound_sample_counter sample_counter;
-
-            //            
-
-
-            //Variables for performance counter
-            unsigned long long cpu_cycle_count = 0;
-            unsigned long long prev_cpu_cycle_count = 0;            
-            LARGE_INTEGER end_timer;
-            LARGE_INTEGER prev_end_timer;
-            prev_end_timer.QuadPart = 0;
-            long long program_loop_time;
-
-            //Structs for perfromance timers
-            perf_timer program_loop_timer;
-            program_loop_timer.id = 0;
-            //perf_timer game_main_timer;  
-            //game_main_timer.id = 1; //TODO: remove as unnecessary
-
             
             //Structs for passing all inputs to the game //TODO: Event based input not used for now
             game_input input;
@@ -1167,11 +1210,6 @@ int CALLBACK WinMain(
             game_memory.temp_memory_size = gigabytes(1);
             game_memory.temp_memory = game_memory.base_memory + game_memory.temp_memory_size;
            
-            //Temporary FPS targets
-            uint16 display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            uint16 target_frame_rate = display_refresh_rate / 2;  // and set reasonalbe game FPS
-            float target_frame_time_ms = 1000.0f / (float)target_frame_rate; 
-        
             //Set Windows timer to minimum resolution
             bool timer_pediod_set = false;
             UINT u_period = 1;
@@ -1180,25 +1218,22 @@ int CALLBACK WinMain(
 
             //Struct for timestamps       
             timestamps previous_timestamps = {};
-            timestamps current_timestamps;
+            timestamps current_timestamps = {};
+            platform_frame_time_data frame_time_data = {};
+            frame_time_data.display_refresh_rate = 120;                  //TODO: get display rate from Windows
+            frame_time_data.target_frame_time = 1.0f / (float32)(frame_time_data.display_refresh_rate / 2); 
 
             //Counter frequency needs to be queried just once
             LARGE_INTEGER counter_freq;                
             QueryPerformanceFrequency(&counter_freq);
 
-            //perf_timer for debugging
-            perf_timer frame_perf_timer;
 
             //Program loop 
             while(program_running)            
             {
                 //Start timer          
                 write_timestamp(&current_timestamps.frame_start, counter_freq);
-#if DEVELOPER_BUILD
-                //perf_timer start for debugging
-                perf_timer_start(&frame_perf_timer);
 
-#endif
                 //Reset input struct                 
                 input = {};
                 copy_prev_input_values(&input, &prev_input);  //TODO: this may be redundant because windows remebres previous state too!
@@ -1257,27 +1292,18 @@ int CALLBACK WinMain(
                 game_update_and_render(&game_memory, &bitmap, &game_sound_output, sample_counter, input); 
                 write_timestamp(&current_timestamps.game_function_end, counter_freq);
 
-
-                write_timestamp(&current_timestamps.copy_sound_start, counter_freq);
                 //Writes to buffer being played. Returns number of used samples.
-                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer);
+                write_timestamp(&current_timestamps.copy_sound_start, counter_freq);
 
+                //TODO: sound_buffer_copy has to take expected sound delay!
+                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, &frame_time_data);
+                write_timestamp(&current_timestamps.copy_sound_end, counter_freq);
 
 #if DEVELOPER_BUILD
                 //Debug display for audio buffer
                 platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
-
-
 #endif
 
-                //Time the game loop and wait if needed    TODO: rework this completely            
-                end_timer.QuadPart = 0;
-                loop_timer_and_sleep(
-                    &cpu_cycle_count, &prev_cpu_cycle_count, 
-                    &end_timer, &prev_end_timer, &counter_freq, 
-                    &program_loop_time, &target_frame_time_ms, timer_pediod_set
-                );
-                
                 //Update the image
                 write_timestamp(&current_timestamps.flip_image_start, counter_freq);
 
@@ -1286,18 +1312,12 @@ int CALLBACK WinMain(
                 update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
                 ReleaseDC(window, device_context);      //This works. Why DC has to be released?
 
-
                 //Print timestamps
                 write_timestamp(&current_timestamps.flip_image_end, counter_freq);
-                print_timestamps(&current_timestamps);
-                previous_timestamps = current_timestamps;
-
 #if DEVELOPER_BUILD
-                //Print CPU cycle use as well
-                perf_timer_stop(&frame_perf_timer);
-
+                print_timestamps(&current_timestamps, &previous_timestamps);
 #endif
-
+                previous_timestamps = current_timestamps;
 
 
             } //Program loop ends
