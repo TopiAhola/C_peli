@@ -455,14 +455,14 @@ internal void print_timestamps(timestamps * current_timestamps, timestamps * pre
     char text_buffer[1024];
     sprintf(text_buffer, 
         "DEBUG PRINT: frame_start: %i message_loop_start:%i gamepad_input_start:%i game_function_start: %i game_function_end: %i copy_sound_start:%i flip_image_start:%i flip_image_end:%i ",        
-        current_timestamps->frame_start,
-        current_timestamps->message_loop_start,
-        current_timestamps->gamepad_input_start,
-        current_timestamps->game_function_start,
-        current_timestamps->game_function_end,
-        current_timestamps->copy_sound_start,
-        current_timestamps->flip_image_start,
-        current_timestamps->flip_image_end
+        current_timestamps->frame_start.QuadPart,
+        current_timestamps->message_loop_start.QuadPart,
+        current_timestamps->gamepad_input_start.QuadPart,
+        current_timestamps->game_function_start.QuadPart,
+        current_timestamps->game_function_end.QuadPart,
+        current_timestamps->copy_sound_start.QuadPart,
+        current_timestamps->flip_image_start.QuadPart,
+        current_timestamps->flip_image_end.QuadPart
     );
     OutputDebugStringA(text_buffer);
 
@@ -554,8 +554,27 @@ calculate_delay(
 
 ////////////////////////////////
 internal void
-wait_for_frame_time(float32 delay) {
+wait_for_frame_time(float32 delay, float32 target_frame_time, LARGE_INTEGER counter_freq, bool timer_pediod_set) {
+    LARGE_INTEGER timer;
+    LARGE_INTEGER prev_timer;
+    float32 time_passed = 0;
+    QueryPerformanceCounter(&prev_timer);
 
+    if(delay > 0){
+
+        //Sleep for whole ms if timer set to 1ms resolution
+        if(timer_pediod_set){
+            Sleep( (DWORD)(1000.0f * delay) );
+        } 
+
+        //Idle in a loop for sub ms precision
+        while(time_passed < delay){
+            QueryPerformanceCounter(&timer);   
+            time_passed = ( (float32)(timer.QuadPart - prev_timer.QuadPart) ) / (float32)(counter_freq.QuadPart);
+            prev_timer = timer;
+        }
+
+    } 
 
 }
 
@@ -1289,7 +1308,7 @@ int CALLBACK WinMain(
             timestamps current_timestamps = {};
             platform_frame_time_data frame_time_data = {};
             frame_time_data.display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            frame_time_data.target_frame_time = 1.0f / (float32)(frame_time_data.display_refresh_rate / 2); 
+            frame_time_data.target_frame_time = 1.0f / 20.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
 
             //Counter frequency needs to be queried just once
             LARGE_INTEGER counter_freq;                
@@ -1375,11 +1394,12 @@ int CALLBACK WinMain(
 
 #if DEVELOPER_BUILD
                 //Debug display for audio buffer
+                //TODO: draw sound and image delay!
                 platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
 #endif
 
                 //Wait for image flip time
-                wait_for_frame_time(delays.image_delay);
+                wait_for_frame_time(delays.image_delay, frame_time_data.target_frame_time , counter_freq, timer_pediod_set);
 
                 //Update the image
                 write_timestamp(&current_timestamps.flip_image_start, counter_freq);

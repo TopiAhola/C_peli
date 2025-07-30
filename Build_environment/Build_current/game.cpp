@@ -33,7 +33,7 @@ internal void sound_test(game_soundbuffer * soundbuffer, sound_sample_counter sa
     if(freq <= 0){freq = 1;} //No smaller than 1 frequencies
     
     //Write up to 2 frames of sound. This will cause audio cuts if frame time fluctuates 2x
-    uint32 samples_to_write = 4 * sample_counter.samples_used_average; //Up to 2 frames of buffer
+    uint32 samples_to_write = 8 * sample_counter.samples_used_average; //Up to 2 frames of buffer
     float32 sample_number = (float32)sample_counter.samples_used_total; 
 
     //TODO: Phase of the sinewave should be function of game time. There is no timer currently other than audio sample usage!
