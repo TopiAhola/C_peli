@@ -32,18 +32,18 @@ struct window_dimensions {
 
 //Timestamps
 struct timestamps {
-    //Times in seconds!
-    
-    float32 frame_start;
-    float32 message_loop_start;
-    float32 gamepad_input_start;
-    float32 game_function_start;
-    float32 game_function_end;
-    float32 copy_sound_start;
-    float32 copy_sound_end;
-    float32 flip_image_start;
-    float32 flip_image_end;
+    //Counter ticks:    
+    LARGE_INTEGER frame_start;
+    LARGE_INTEGER message_loop_start;
+    LARGE_INTEGER gamepad_input_start;
+    LARGE_INTEGER game_function_start;
+    LARGE_INTEGER game_function_end;
+    LARGE_INTEGER copy_sound_start;
+    LARGE_INTEGER copy_sound_end;
+    LARGE_INTEGER flip_image_start;
+    LARGE_INTEGER flip_image_end;
 
+    //Seconds:
     float32 message_loop_duration;
     float32 input_duration;
     float32 game_function_duration;
@@ -64,9 +64,18 @@ struct platform_frame_time_data {
     float32 target_frame_time; 
     float32 sound_delay_avg;
     float32 last_unbuffered_frame_times[10];
-    float32 last_sound_delays[10];   
+    float32 last_sound_delays[10]; 
     
+    uint32 image_delayed_due_sound_count;
+    uint32 sound_delayed_until_image_count; 
+    //TODO: frame times to an array?
 };
+
+struct image_sound_delay {
+    float32 sound_delay;
+    float32 image_delay;
+
+};  
 
 
 /////////////////////////////////////////////////////////////
@@ -251,7 +260,7 @@ sound_buffer_copy(
         game_soundbuffer * game_sound_output, 
         LPDIRECTSOUNDBUFFER sound_buffer, 
         timestamps * current_timestamps,
-        platform_frame_time_data * frame_time_data
+        float32 sound_delay
     ){
     //Get properties of sound_buffer
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
@@ -261,13 +270,13 @@ sound_buffer_copy(
 
     //Properties of source buffer
     int bytes_per_sample = game_sound_output->bytes_per_sample;
-
+    uint32 bytes_per_second = game_sound_output->sample_rate * ((uint32)bytes_per_sample);
 
     //Get position of Play cursor
     local_static DWORD previous_play_cursor_position = 0;
     DWORD play_cursor_position;
     DWORD write_cursor_positon;
-    DWORD write_cursor_offset = 0;
+    DWORD write_cursor_offset = (DWORD)(sound_delay * (float32)bytes_per_second);
     sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_positon);
 
     //TODO: There should be only 1 frame counter in the program
@@ -429,23 +438,23 @@ get_pad_inputs(game_input * input){
 }
 
 /////////////////////////////////////////////////////////////
-//BENCHMARKS        
+//TIMING AND BENCHMARKING        
 
 ////////////////////////////////
 //NEW TIMERS
 
-internal void write_timestamp(float32 * timestamp, LARGE_INTEGER counter_freq){
+internal void write_timestamp(LARGE_INTEGER * timestamp, LARGE_INTEGER counter_freq){
     LARGE_INTEGER counter;
     WINBOOL success = QueryPerformanceCounter(&counter);
     if(success){
-        *timestamp = ((float32)counter.LowPart) / ((float32)counter_freq.QuadPart);
+        *timestamp = counter;
     }
 }
 
-internal void print_timestamps(timestamps * current_timestamps, timestamps * previous_timestamps){
+internal void print_timestamps(timestamps * current_timestamps, timestamps * previous_timestamps, LARGE_INTEGER counter_freq){
     char text_buffer[1024];
     sprintf(text_buffer, 
-        "DEBUG PRINT: frame_start: %f message_loop_start:%f gamepad_input_start:%f game_function_start: %f game_function_end: %f copy_sound_start:%f flip_image_start:%f flip_image_end:%.02f ",        
+        "DEBUG PRINT: frame_start: %i message_loop_start:%i gamepad_input_start:%i game_function_start: %i game_function_end: %i copy_sound_start:%i flip_image_start:%i flip_image_end:%i ",        
         current_timestamps->frame_start,
         current_timestamps->message_loop_start,
         current_timestamps->gamepad_input_start,
@@ -457,13 +466,13 @@ internal void print_timestamps(timestamps * current_timestamps, timestamps * pre
     );
     OutputDebugStringA(text_buffer);
 
-    current_timestamps->message_loop_duration = current_timestamps->gamepad_input_start - current_timestamps->message_loop_start;
-    current_timestamps->input_duration =  current_timestamps->game_function_start - current_timestamps->gamepad_input_start;
-    current_timestamps->game_function_duration = current_timestamps->game_function_end - current_timestamps->game_function_start;
-    current_timestamps->copy_sound_duration = current_timestamps->copy_sound_end - current_timestamps->copy_sound_start;
-    current_timestamps->flip_image_duration = current_timestamps->flip_image_end - current_timestamps->flip_image_start;
-    current_timestamps->frame_start_to_end = current_timestamps->flip_image_end - current_timestamps->frame_start;
-    current_timestamps->frame_end_to_end = current_timestamps->flip_image_end - previous_timestamps->flip_image_end;
+    current_timestamps->message_loop_duration =    ((float32)(current_timestamps->gamepad_input_start.QuadPart - current_timestamps->message_loop_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->input_duration =           ((float32)(current_timestamps->game_function_start.QuadPart - current_timestamps->gamepad_input_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->game_function_duration =   ((float32)(current_timestamps->game_function_end.QuadPart - current_timestamps->game_function_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->copy_sound_duration =      ((float32)(current_timestamps->copy_sound_end.QuadPart - current_timestamps->copy_sound_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->flip_image_duration =      ((float32)(current_timestamps->flip_image_end.QuadPart - current_timestamps->flip_image_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->frame_start_to_end =       ((float32)(current_timestamps->flip_image_end.QuadPart - current_timestamps->frame_start.QuadPart)) / ((float32)counter_freq.QuadPart);
+    current_timestamps->frame_end_to_end =         ((float32)(current_timestamps->flip_image_end.QuadPart - previous_timestamps->flip_image_end.QuadPart)) / ((float32)counter_freq.QuadPart);
 
     char text_buffer_2[1024];
     sprintf(text_buffer_2, 
@@ -493,6 +502,65 @@ internal void print_timestamps(timestamps * current_timestamps, timestamps * pre
     OutputDebugStringA(text_buffer_3);
 
 }
+
+////////////////////////////////
+internal void
+calculate_delay(
+    image_sound_delay * delays,
+    timestamps * timestamps, 
+    platform_frame_time_data * frame_time_data, 
+    LARGE_INTEGER counter_freq,
+    LPDIRECTSOUNDBUFFER sound_buffer,
+    game_soundbuffer * game_sound_buffer
+) {
+    //TODO: this code is duplicated in sound buffer copy.... simplify
+
+    //TODO: sound delay needs to be in SAMPLES otherwise per byte delay will mess up sound channels
+
+    //Get time to cursor    
+    DWORD write_cursor_positon;
+    DWORD play_cursor_position; 
+    sound_buffer->GetCurrentPosition(&play_cursor_position, &write_cursor_positon);
+    uint32 bytes_per_second = (uint32)game_sound_buffer->bytes_per_sample * game_sound_buffer->sample_rate;
+    uint32 bytes_to_write_cursor = 0;
+
+    if(write_cursor_positon < play_cursor_position) {
+        bytes_to_write_cursor = game_sound_buffer->size - (uint32)play_cursor_position + (uint32)write_cursor_positon;
+    } else {
+        bytes_to_write_cursor = (uint32)(write_cursor_positon - play_cursor_position);
+    }
+
+    //See if sound can be written without delaying the image
+    assert(bytes_per_second > 0);
+    float32 time_to_write_cursor = ((float32)bytes_to_write_cursor) / ((float32)bytes_per_second);
+    float32 current_time = ((float32)(timestamps->copy_sound_start.QuadPart - timestamps->frame_start.QuadPart)) / ((float32)counter_freq.QuadPart); 
+    float32 time_to_flip = frame_time_data->target_frame_time - current_time - timestamps->flip_image_duration;
+ 
+
+    if(time_to_write_cursor < time_to_flip){
+        delays->sound_delay = time_to_flip;
+        delays->image_delay = time_to_flip;
+        frame_time_data->sound_delayed_until_image_count++;
+
+    } else {
+        delays->sound_delay = 0;
+        delays->image_delay = time_to_write_cursor;
+        frame_time_data->image_delayed_due_sound_count++;
+
+    }
+
+}
+
+
+////////////////////////////////
+internal void
+wait_for_frame_time(float32 delay) {
+
+
+}
+
+
+
 
 ////////////////////////////////
 //OLD TIMERS
@@ -1295,14 +1363,23 @@ int CALLBACK WinMain(
                 //Writes to buffer being played. Returns number of used samples.
                 write_timestamp(&current_timestamps.copy_sound_start, counter_freq);
 
+                //Determine delay for either sound or image
+                image_sound_delay delays = {};
+                calculate_delay(&delays, &current_timestamps ,&frame_time_data, counter_freq, sound_buffer, &game_sound_output);
+                current_timestamps.wait_time = delays.image_delay;
+
+
                 //TODO: sound_buffer_copy has to take expected sound delay!
-                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, &frame_time_data);
+                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, delays.sound_delay);
                 write_timestamp(&current_timestamps.copy_sound_end, counter_freq);
 
 #if DEVELOPER_BUILD
                 //Debug display for audio buffer
                 platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
 #endif
+
+                //Wait for image flip time
+                wait_for_frame_time(delays.image_delay);
 
                 //Update the image
                 write_timestamp(&current_timestamps.flip_image_start, counter_freq);
@@ -1315,10 +1392,10 @@ int CALLBACK WinMain(
                 //Print timestamps
                 write_timestamp(&current_timestamps.flip_image_end, counter_freq);
 #if DEVELOPER_BUILD
-                print_timestamps(&current_timestamps, &previous_timestamps);
+                print_timestamps(&current_timestamps, &previous_timestamps, counter_freq);
 #endif
                 previous_timestamps = current_timestamps;
-
+                //TODO: image flip may be constant so can be benchmarked just once at start?
 
             } //Program loop ends
 
