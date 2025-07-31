@@ -113,7 +113,12 @@ Day 25: 25.7.2025
 Started working on accurate frame timestamps. Debug printout of frame time data.
 Sound write latency needs to taken into account with frame pacing.
 
-Day26: 30.7.2025
+Day 26: 30.7.2025
 Timestamps working now. platform loop calculates duration of functions and delays either image or 
 sound to match the target frame time. 
+
+Day 27: 31.7.2025
+Sub 20fps works. Sound buffer copy segfaults.  
+Rewrite game sound function to use frame time data instead of samples used data?
+
 

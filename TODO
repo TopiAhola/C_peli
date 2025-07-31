@@ -10,7 +10,7 @@ Document build environment with pictures.
 Get proper gamepad and test xinput.
 
 Sound latency needs to influence image flip. And frame time target needs to set sound write location in buffer!
-
+Rewrite game sound function to use frame time data instead of samples used data?
 
 
 

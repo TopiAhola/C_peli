@@ -61,7 +61,9 @@ struct platform_frame_time_data {
 
     float32 unbuffered_frame_time_avg;
     float32 unbuffered_frame_time_max;
-    float32 target_frame_time; 
+    float32 target_frame_time;
+    float32 calibrated_frame_time;
+
     float32 sound_delay_avg;
     float32 last_unbuffered_frame_times[10];
     float32 last_sound_delays[10]; 
@@ -74,7 +76,8 @@ struct platform_frame_time_data {
 struct image_sound_delay {
     float32 sound_delay;
     float32 image_delay;
-
+    uint32 image_flip_sound_sample;
+    uint32 sound_delay_samples;
 };  
 
 
@@ -260,7 +263,7 @@ sound_buffer_copy(
         game_soundbuffer * game_sound_output, 
         LPDIRECTSOUNDBUFFER sound_buffer, 
         timestamps * current_timestamps,
-        float32 sound_delay
+        uint32 sound_delay_samples
     ){
     //Get properties of sound_buffer
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
@@ -276,7 +279,7 @@ sound_buffer_copy(
     local_static DWORD previous_play_cursor_position = 0;
     DWORD play_cursor_position;
     DWORD write_cursor_positon;
-    DWORD write_cursor_offset = (DWORD)(sound_delay * (float32)bytes_per_second);
+    DWORD write_cursor_offset = (DWORD)(sound_delay_samples * bytes_per_sample);
     sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_positon);
 
     //TODO: There should be only 1 frame counter in the program
@@ -309,7 +312,7 @@ sound_buffer_copy(
         assert(0);  //buffer lock should always be inside the buffer
     }
     
-    lock_size = 8 * samples_used_average; //Write 2 frames on average NOTE: sample count vs. byte count!
+    lock_size = 2 * bytes_per_sample * samples_used_average; 
 
     
     
@@ -322,9 +325,11 @@ sound_buffer_copy(
     }
     samples_used_total = samples_used_total + samples_used;
 
+    /* TEST: REMOVE THIS
     int32 source_pointer_offset_half_sample = 2 * (samples_used_total - game_sound_output->last_write_sample_index);
     if(source_pointer_offset_half_sample < 0){source_pointer_offset_half_sample = 0;}
-    
+    */
+
     if(lock_size > 0){        
         sound_buffer->Lock(         
             lock_start_byte,
@@ -337,7 +342,7 @@ sound_buffer_copy(
         );
 
         //Write to locked segments using pointers segment1_p, segment2_p        
-        INT16 * source_half_sample_p = game_sound_output->memory_p + source_pointer_offset_half_sample;
+        INT16 * source_half_sample_p = game_sound_output->memory_p; //TEST: comment out: + source_pointer_offset_half_sample;
         INT16 * half_sample_p;       
         
 
@@ -443,7 +448,7 @@ get_pad_inputs(game_input * input){
 ////////////////////////////////
 //NEW TIMERS
 
-internal void write_timestamp(LARGE_INTEGER * timestamp, LARGE_INTEGER counter_freq){
+internal void write_timestamp(LARGE_INTEGER * timestamp){
     LARGE_INTEGER counter;
     WINBOOL success = QueryPerformanceCounter(&counter);
     if(success){
@@ -533,10 +538,11 @@ calculate_delay(
     //See if sound can be written without delaying the image
     assert(bytes_per_second > 0);
     float32 time_to_write_cursor = ((float32)bytes_to_write_cursor) / ((float32)bytes_per_second);
-    float32 current_time = ((float32)(timestamps->copy_sound_start.QuadPart - timestamps->frame_start.QuadPart)) / ((float32)counter_freq.QuadPart); 
+    int64 current_ticks = timestamps->copy_sound_start.QuadPart - timestamps->frame_start.QuadPart;
+    float32 current_time = ( (float32)current_ticks) / ( (float32)counter_freq.QuadPart ); 
     float32 time_to_flip = frame_time_data->target_frame_time - current_time - timestamps->flip_image_duration;
  
-
+    
     if(time_to_write_cursor < time_to_flip){
         delays->sound_delay = time_to_flip;
         delays->image_delay = time_to_flip;
@@ -554,11 +560,14 @@ calculate_delay(
 
 ////////////////////////////////
 internal void
-wait_for_frame_time(float32 delay, float32 target_frame_time, LARGE_INTEGER counter_freq, bool timer_pediod_set) {
+wait_for_frame_time(float32 delay, platform_frame_time_data * frame_time_data, timestamps * timestamps, LARGE_INTEGER counter_freq,  bool timer_pediod_set) {
     LARGE_INTEGER timer;
-    LARGE_INTEGER prev_timer;
+    int64 ticks_passed;
     float32 time_passed = 0;
-    QueryPerformanceCounter(&prev_timer);
+    QueryPerformanceCounter(&timer);
+    ticks_passed = timer.QuadPart - timestamps->frame_start.QuadPart;
+
+    float32 target_wait_time = frame_time_data->target_frame_time - timestamps->flip_image_duration;
 
     if(delay > 0){
 
@@ -568,14 +577,28 @@ wait_for_frame_time(float32 delay, float32 target_frame_time, LARGE_INTEGER coun
         } 
 
         //Idle in a loop for sub ms precision
-        while(time_passed < delay){
-            QueryPerformanceCounter(&timer);   
-            time_passed = ( (float32)(timer.QuadPart - prev_timer.QuadPart) ) / (float32)(counter_freq.QuadPart);
-            prev_timer = timer;
+        while(time_passed < target_wait_time){
+            QueryPerformanceCounter(&timer);
+            ticks_passed = timer.QuadPart - timestamps->frame_start.QuadPart;
+            time_passed = ( (float32)ticks_passed ) / (float32)(counter_freq.QuadPart);
+            
         }
 
     } 
 
+}
+
+internal void
+calibrate_frame_time(timestamps * current_timestamps, platform_frame_time_data * frame_time_data){
+
+    //TODO: this doesn't work
+    if(current_timestamps->frame_end_to_end > frame_time_data->target_frame_time){
+        frame_time_data->calibrated_frame_time =- 0.001f;
+    } else if (current_timestamps->frame_end_to_end < frame_time_data->target_frame_time){
+        frame_time_data->calibrated_frame_time =+ 0.001f;
+    } else {
+        //Nothing
+    }
 }
 
 
@@ -787,7 +810,11 @@ platform_debug_read_file(char* filename){
 }
 
 internal void
-platform_debug_draw_audio_cursor(offscreen_bitmap * p_backbuffer, LPDIRECTSOUNDBUFFER sound_buffer){
+platform_debug_draw_audio_cursor(
+    offscreen_bitmap * p_backbuffer, 
+    LPDIRECTSOUNDBUFFER sound_buffer,
+    uint32 image_flip_sound_sample
+){
     
     //Get sound buffer capabilities
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
@@ -798,6 +825,7 @@ platform_debug_draw_audio_cursor(offscreen_bitmap * p_backbuffer, LPDIRECTSOUNDB
     //Get position of cursorS
     local_static DWORD previous_screen_play_cursor_position = 0;
     local_static DWORD previous_screen_write_cursor_position = 0;
+    local_static DWORD previous_screen_image_flip_sound_byte = 0;
     DWORD play_cursor_position = 0;
     DWORD write_cursor_position = 0;        
     sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_position);
@@ -805,6 +833,7 @@ platform_debug_draw_audio_cursor(offscreen_bitmap * p_backbuffer, LPDIRECTSOUNDB
     //Normalize cursor position to bitmap size:    
     DWORD screen_play_cursor_position = (play_cursor_position * (DWORD)p_backbuffer->width) / capabilities.dwBufferBytes;
     DWORD screen_write_cursor_position = (write_cursor_position * (DWORD)p_backbuffer->width) / capabilities.dwBufferBytes;
+    DWORD screen_image_flip_sound_byte = ((image_flip_sound_sample * 4) * (DWORD)p_backbuffer->width) / capabilities.dwBufferBytes;
 
     //Draw the buffer and cursors
     int buffer_bar_thickness = p_backbuffer->height /10;
@@ -844,12 +873,35 @@ platform_debug_draw_audio_cursor(offscreen_bitmap * p_backbuffer, LPDIRECTSOUNDB
         subpixel_pointer++;
         *subpixel_pointer = 255;    //Green
         subpixel_pointer++;
-        *subpixel_pointer = 0;      //Red       
+        *subpixel_pointer = 0;      //Red  
+        
+        //Expected image flip position:
+        pixel_pointer = row_pointer + screen_image_flip_sound_byte;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 255;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 255;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 0;      //Red  
+
+        //Previous expected image flip position
+        pixel_pointer = row_pointer + previous_screen_image_flip_sound_byte;
+        subpixel_pointer = (uint8*)pixel_pointer; 
+        *subpixel_pointer = 255;      //Blue
+        subpixel_pointer++;
+        *subpixel_pointer = 255;    //Green
+        subpixel_pointer++;
+        *subpixel_pointer = 0;      //Red      
+
+
+
+
+
     }
 
     previous_screen_play_cursor_position = screen_play_cursor_position;
     previous_screen_write_cursor_position = screen_write_cursor_position;
-
+    previous_screen_image_flip_sound_byte = screen_image_flip_sound_byte;
 }
 
 
@@ -1308,7 +1360,9 @@ int CALLBACK WinMain(
             timestamps current_timestamps = {};
             platform_frame_time_data frame_time_data = {};
             frame_time_data.display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            frame_time_data.target_frame_time = 1.0f / 20.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
+            frame_time_data.target_frame_time = 1.0f / 18.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
+            frame_time_data.calibrated_frame_time = frame_time_data.target_frame_time;
+
 
             //Counter frequency needs to be queried just once
             LARGE_INTEGER counter_freq;                
@@ -1319,7 +1373,7 @@ int CALLBACK WinMain(
             while(program_running)            
             {
                 //Start timer          
-                write_timestamp(&current_timestamps.frame_start, counter_freq);
+                write_timestamp(&current_timestamps.frame_start);
 
                 //Reset input struct                 
                 input = {};
@@ -1327,7 +1381,7 @@ int CALLBACK WinMain(
                 input_events = {}; //Input events should be reset!
 
                 //Message loop
-                write_timestamp(&current_timestamps.message_loop_start, counter_freq);
+                write_timestamp(&current_timestamps.message_loop_start);
 
                 while(message_bool = PeekMessage(        //PeekMessage gets messages if any //PeekMessage writes message to the given pointer and returns a "BOOL"
                     &message,                           //Pointer to a location to put message into
@@ -1355,7 +1409,7 @@ int CALLBACK WinMain(
                 }       
 
                 //Get gamepad inputs into game_input struct
-                write_timestamp(&current_timestamps.gamepad_input_start, counter_freq);
+                write_timestamp(&current_timestamps.gamepad_input_start);
 
                 get_pad_inputs(&input);
                 //get_pad_inputs(&input_events); //TODO: Pad inputs more granular than frame rate
@@ -1364,7 +1418,7 @@ int CALLBACK WinMain(
                 prev_input = input;
 
                 //GAME MAIN FUNCTION                             
-                write_timestamp(&current_timestamps.game_function_start, counter_freq);
+                write_timestamp(&current_timestamps.game_function_start);
 
                 //Defined again every loop because backbuffer dimensions may change with window size.
                 game_backbuffer bitmap;
@@ -1377,10 +1431,10 @@ int CALLBACK WinMain(
 
                 //Fills image and sound buffers with latest data
                 game_update_and_render(&game_memory, &bitmap, &game_sound_output, sample_counter, input); 
-                write_timestamp(&current_timestamps.game_function_end, counter_freq);
+                write_timestamp(&current_timestamps.game_function_end);
 
                 //Writes to buffer being played. Returns number of used samples.
-                write_timestamp(&current_timestamps.copy_sound_start, counter_freq);
+                write_timestamp(&current_timestamps.copy_sound_start);
 
                 //Determine delay for either sound or image
                 image_sound_delay delays = {};
@@ -1390,30 +1444,33 @@ int CALLBACK WinMain(
 
                 //TODO: sound_buffer_copy has to take expected sound delay!
                 sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, delays.sound_delay);
-                write_timestamp(&current_timestamps.copy_sound_end, counter_freq);
+                write_timestamp(&current_timestamps.copy_sound_end);
 
 #if DEVELOPER_BUILD
                 //Debug display for audio buffer
                 //TODO: draw sound and image delay!
-                platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer);
+                platform_debug_draw_audio_cursor(p_backbuffer, sound_buffer, delays.image_flip_sound_sample);
 #endif
 
                 //Wait for image flip time
-                wait_for_frame_time(delays.image_delay, frame_time_data.target_frame_time , counter_freq, timer_pediod_set);
+                wait_for_frame_time(delays.image_delay, &frame_time_data, &current_timestamps , counter_freq, timer_pediod_set);
 
                 //Update the image
-                write_timestamp(&current_timestamps.flip_image_start, counter_freq);
+                write_timestamp(&current_timestamps.flip_image_start);
 
                 window_dimensions dimensions = get_window_dimensions(window);
                 HDC device_context = GetDC(window);
                 update_window(device_context, p_backbuffer,0,0,dimensions.width,dimensions.height);
                 ReleaseDC(window, device_context);      //This works. Why DC has to be released?
 
-                //Print timestamps
-                write_timestamp(&current_timestamps.flip_image_end, counter_freq);
+                write_timestamp(&current_timestamps.flip_image_end);
+         
 #if DEVELOPER_BUILD
+                //Print timestamps
                 print_timestamps(&current_timestamps, &previous_timestamps, counter_freq);
 #endif
+
+                calibrate_frame_time(&current_timestamps, &frame_time_data);
                 previous_timestamps = current_timestamps;
                 //TODO: image flip may be constant so can be benchmarked just once at start?
 
