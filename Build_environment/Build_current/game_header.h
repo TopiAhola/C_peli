@@ -65,7 +65,7 @@ struct game_soundbuffer {
     uint32 sample_rate = 48000;    
     uint32 size = 192000;   
     uint32 last_write_sample_index;    
-    uint8 bytes_per_sample = 4;
+    uint32 bytes_per_sample = 4;
 };
 
 //SOUND
@@ -73,7 +73,7 @@ struct game_soundbuffer {
 
 
 
-
+//TODO: remove this, sound output should be function of time not samples
 struct sound_sample_counter {
     uint32 samples_used;
     uint32 samples_used_maximum;  

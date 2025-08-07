@@ -75,8 +75,7 @@ struct platform_frame_time_data {
 
 struct image_sound_delay {
     float32 sound_delay;
-    float32 image_delay;
-    uint32 image_flip_sound_sample;
+    float32 image_delay;    
     uint32 sound_delay_samples;
 };  
 
@@ -258,7 +257,7 @@ internal LPDIRECTSOUNDBUFFER load_dsound(HWND window, INT32 samples_per_second, 
 ////////////////////////////////
 //Copies game output buffer to playing buffer. Returns amount of copied bytes 
 
-internal sound_sample_counter
+internal void
 sound_buffer_copy(
         game_soundbuffer * game_sound_output, 
         LPDIRECTSOUNDBUFFER sound_buffer, 
@@ -272,7 +271,7 @@ sound_buffer_copy(
     DWORD buffer_size = capabilities.dwBufferBytes;
 
     //Properties of source buffer
-    int bytes_per_sample = game_sound_output->bytes_per_sample;
+    uint32 bytes_per_sample = game_sound_output->bytes_per_sample;
     uint32 bytes_per_second = game_sound_output->sample_rate * ((uint32)bytes_per_sample);
 
     //Get position of Play cursor
@@ -283,15 +282,18 @@ sound_buffer_copy(
     sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_positon);
 
     //TODO: There should be only 1 frame counter in the program
+   
+#if DEVELOPER_MODE
+    //These are for debugging:
     local_static DWORD frame_count = 0;
     frame_count++; 
-
     local_static DWORD samples_used_total = 0;
     local_static DWORD samples_used_average = 0;
     local_static uint32 samples_used_maximum = 0; 
     samples_used_average = samples_used_total / frame_count;
     local_static uint32 samples_used = 0;
     local_static uint32 previous_samples_used = 0;
+#endif
 
      
     //Set lock segments
@@ -312,10 +314,11 @@ sound_buffer_copy(
         assert(0);  //buffer lock should always be inside the buffer
     }
     
-    lock_size = 2 * bytes_per_sample * samples_used_average; 
+    //TODO: size of lock should be constant: Target frame time + buffer
+    lock_size = 2 * bytes_per_sample ; 
 
     
-    
+#if DEVELOPER_MODE
     if(play_cursor_position > previous_play_cursor_position){
         samples_used = (play_cursor_position - previous_play_cursor_position) / bytes_per_sample;
     } else if(play_cursor_position < previous_play_cursor_position) {
@@ -324,6 +327,7 @@ sound_buffer_copy(
         samples_used = 0;
     }
     samples_used_total = samples_used_total + samples_used;
+#endif
 
     /* TEST: REMOVE THIS
     int32 source_pointer_offset_half_sample = 2 * (samples_used_total - game_sound_output->last_write_sample_index);
@@ -376,22 +380,9 @@ sound_buffer_copy(
         );
     }
 
-    //Return value is a sample counter
-    sound_sample_counter sample_counter;
-
-    sample_counter.samples_used = samples_used;
-    if(samples_used > sample_counter.samples_used_maximum){
-        sample_counter.samples_used_maximum = samples_used;
-    }
-    sample_counter.samples_used_total = samples_used_total;
-    sample_counter.samples_used_average = samples_used_average;
-
-
     //Set previous value as current
     previous_play_cursor_position = play_cursor_position;
-    previous_samples_used = samples_used;
-
-    return sample_counter;
+      
 }
 
 
@@ -547,6 +538,7 @@ calculate_delay(
         delays->sound_delay = time_to_flip;
         delays->image_delay = time_to_flip;
         frame_time_data->sound_delayed_until_image_count++;
+        delays->sound_delay_samples = (uint32)(time_to_flip/game_sound_buffer->sample_rate);
 
     } else {
         delays->sound_delay = 0;
@@ -1333,9 +1325,6 @@ int CALLBACK WinMain(
             //Create buffer for game return sound to. Will be copied to sound_buffer to be played        
             game_soundbuffer game_sound_output = {0, 48000, 192000, 0, 4};
             game_sound_output.memory_p = (int16*) VirtualAlloc(0, game_sound_output.size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
-            //Variable for sound samples played during loop
-            sound_sample_counter sample_counter;
             
             //Structs for passing all inputs to the game //TODO: Event based input not used for now
             game_input input;
@@ -1360,7 +1349,7 @@ int CALLBACK WinMain(
             timestamps current_timestamps = {};
             platform_frame_time_data frame_time_data = {};
             frame_time_data.display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            frame_time_data.target_frame_time = 1.0f / 18.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
+            frame_time_data.target_frame_time = 1.0f / 180.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
             frame_time_data.calibrated_frame_time = frame_time_data.target_frame_time;
 
 
@@ -1430,7 +1419,7 @@ int CALLBACK WinMain(
                 bitmap.pitch = backbuffer.pitch;
 
                 //Fills image and sound buffers with latest data
-                game_update_and_render(&game_memory, &bitmap, &game_sound_output, sample_counter, input); 
+                game_update_and_render(&game_memory, &bitmap, &game_sound_output, input); 
                 write_timestamp(&current_timestamps.game_function_end);
 
                 //Writes to buffer being played. Returns number of used samples.
@@ -1443,7 +1432,7 @@ int CALLBACK WinMain(
 
 
                 //TODO: sound_buffer_copy has to take expected sound delay!
-                sample_counter = sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, delays.sound_delay);
+                sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, delays.sound_delay);
                 write_timestamp(&current_timestamps.copy_sound_end);
 
 #if DEVELOPER_BUILD
