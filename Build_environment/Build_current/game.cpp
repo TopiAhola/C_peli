@@ -20,7 +20,7 @@
 //SOUND
 
 //Writes test sound to given sound buffer 
-internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_relative, float32 y_location_relative, uint32 frame_counter){  
+internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_relative, float32 y_location_relative, float32 target_frame_time){  
     //TODO: if bad struct in argumets will this crash?  
     //TODO: Remove whole struct, average can be counted here locally...  
     
@@ -32,9 +32,12 @@ internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_rel
     uint32 freq =  (uint32)( 400.0f * y_location_relative );     
     if(freq <= 0){freq = 1;} //No smaller than 1 frequencies
     
-    //Write up to 2 frames of sound. This will cause audio cuts if frame time fluctuates 2x
-    uint32 samples_to_write = 0; 
-    float32 sample_number = 0;
+    //Write up to 2 frames of sound. 
+    //This will cause audio cuts if frame time fluctuates 
+    uint32 samples_to_write = (uint32)( ( (float32)(soundbuffer->sample_rate) ) * 2.0f * target_frame_time); 
+    local_static float32 game_time_passed = 0; 
+    float32 sample_number = game_time_passed * soundbuffer->sample_rate;
+    game_time_passed += target_frame_time;
 
     //TODO: Phase of the sinewave should be function of game time. There is no timer currently other than audio sample usage!
 
@@ -55,11 +58,6 @@ internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_rel
         sample_number++;
     } 
     
-
-    //TODO: remove this ? 
-    //soundbuffer->last_write_sample_index = 0;
-
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -254,7 +252,8 @@ game_update_and_render(
     memory_pool * game_memory,
     game_backbuffer * bitmap, 
     game_soundbuffer * soundbuffer,      
-    game_input input
+    game_input input,
+    float32 target_frame_time
 ){
     //Count the frame
     local_static uint32 frame_counter = 0;      
@@ -284,7 +283,7 @@ game_update_and_render(
 
     //Draw and sound test
     draw_test(bitmap, x_location, y_location);
-    sound_test(soundbuffer, x_location_relative, y_location_relative, frame_counter);
+    sound_test(soundbuffer, x_location_relative, y_location_relative, target_frame_time);
 
     
     char * filename = "read_target";
@@ -294,7 +293,7 @@ game_update_and_render(
     platform_debug_free_file_memory(test_file_struct.memory);
     
 
-    write_to_memory(game_memory->base_memory, gigabytes(4));  //Writes 4 GB for testing 
+    //write_to_memory(game_memory->base_memory, gigabytes(4));  //Writes 4 GB for testing 
     
 
 }

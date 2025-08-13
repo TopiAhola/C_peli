@@ -121,4 +121,6 @@ Day 27: 31.7.2025
 Sub 20fps works. Sound buffer copy segfaults.  
 Rewrite game sound function to use frame time data instead of samples used data?
 
+Day 28: 13.8.2025
+Doesn't crash but sound doesn't work either. Add game time counter next for constant sound.
 

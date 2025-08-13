@@ -58,6 +58,7 @@ struct timestamps {
 struct platform_frame_time_data {
     uint32 display_refresh_rate = 120;                  //TODO: get display rate from Windows
     uint32 frame_counter;
+    float64 game_time_passed;
 
     float32 unbuffered_frame_time_avg;
     float32 unbuffered_frame_time_max;
@@ -77,6 +78,7 @@ struct image_sound_delay {
     float32 sound_delay;
     float32 image_delay;    
     uint32 sound_delay_samples;
+    uint32 image_flip_sound_sample;
 };  
 
 
@@ -262,7 +264,7 @@ sound_buffer_copy(
         game_soundbuffer * game_sound_output, 
         LPDIRECTSOUNDBUFFER sound_buffer, 
         timestamps * current_timestamps,
-        uint32 sound_delay_samples
+        image_sound_delay * delays
     ){
     //Get properties of sound_buffer
     DSBCAPS capabilities = {};                   //Struct to put capabilities in.   
@@ -278,8 +280,12 @@ sound_buffer_copy(
     local_static DWORD previous_play_cursor_position = 0;
     DWORD play_cursor_position;
     DWORD write_cursor_positon;
-    DWORD write_cursor_offset = (DWORD)(sound_delay_samples * bytes_per_sample);
+
+    //TODO: this is wrong? Delay should be position + offset, 
+    //Actuallu just use the calculated image_flip_sound_sample... 
+    DWORD write_cursor_offset = (DWORD)(delays->sound_delay_samples * bytes_per_sample);
     sound_buffer->GetCurrentPosition(&play_cursor_position,&write_cursor_positon);
+
 
     //TODO: There should be only 1 frame counter in the program
    
@@ -532,17 +538,21 @@ calculate_delay(
     int64 current_ticks = timestamps->copy_sound_start.QuadPart - timestamps->frame_start.QuadPart;
     float32 current_time = ( (float32)current_ticks) / ( (float32)counter_freq.QuadPart ); 
     float32 time_to_flip = frame_time_data->target_frame_time - current_time - timestamps->flip_image_duration;
- 
+    uint32 sound_delay_samples;
     
     if(time_to_write_cursor < time_to_flip){
         delays->sound_delay = time_to_flip;
-        delays->image_delay = time_to_flip;
+        delays->image_delay = time_to_flip;        
         frame_time_data->sound_delayed_until_image_count++;
-        delays->sound_delay_samples = (uint32)(time_to_flip/game_sound_buffer->sample_rate);
+
+        sound_delay_samples = (uint32)(time_to_flip/game_sound_buffer->sample_rate);
+        delays->sound_delay_samples = sound_delay_samples;
+        delays->image_flip_sound_sample = (play_cursor_position + sound_delay_samples) % game_sound_buffer->size;
 
     } else {
         delays->sound_delay = 0;
         delays->image_delay = time_to_write_cursor;
+        delays->image_flip_sound_sample = write_cursor_positon; 
         frame_time_data->image_delayed_due_sound_count++;
 
     }
@@ -872,7 +882,7 @@ platform_debug_draw_audio_cursor(
         subpixel_pointer = (uint8*)pixel_pointer; 
         *subpixel_pointer = 255;      //Blue
         subpixel_pointer++;
-        *subpixel_pointer = 255;    //Green
+        *subpixel_pointer = 0;    //Green
         subpixel_pointer++;
         *subpixel_pointer = 0;      //Red  
 
@@ -881,7 +891,7 @@ platform_debug_draw_audio_cursor(
         subpixel_pointer = (uint8*)pixel_pointer; 
         *subpixel_pointer = 255;      //Blue
         subpixel_pointer++;
-        *subpixel_pointer = 255;    //Green
+        *subpixel_pointer = 0;    //Green
         subpixel_pointer++;
         *subpixel_pointer = 0;      //Red      
 
@@ -1349,7 +1359,7 @@ int CALLBACK WinMain(
             timestamps current_timestamps = {};
             platform_frame_time_data frame_time_data = {};
             frame_time_data.display_refresh_rate = 120;                  //TODO: get display rate from Windows
-            frame_time_data.target_frame_time = 1.0f / 180.0f;              //TODO: FRAME RATE BELLOW 30 WILL BREAK SOUND
+            frame_time_data.target_frame_time = 1.0f / 25.0f;              
             frame_time_data.calibrated_frame_time = frame_time_data.target_frame_time;
 
 
@@ -1419,7 +1429,7 @@ int CALLBACK WinMain(
                 bitmap.pitch = backbuffer.pitch;
 
                 //Fills image and sound buffers with latest data
-                game_update_and_render(&game_memory, &bitmap, &game_sound_output, input); 
+                game_update_and_render(&game_memory, &bitmap, &game_sound_output, input, frame_time_data.target_frame_time); 
                 write_timestamp(&current_timestamps.game_function_end);
 
                 //Writes to buffer being played. Returns number of used samples.
@@ -1432,7 +1442,7 @@ int CALLBACK WinMain(
 
 
                 //TODO: sound_buffer_copy has to take expected sound delay!
-                sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, delays.sound_delay);
+                sound_buffer_copy(&game_sound_output, sound_buffer, &current_timestamps, &delays);
                 write_timestamp(&current_timestamps.copy_sound_end);
 
 #if DEVELOPER_BUILD
