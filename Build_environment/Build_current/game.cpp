@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 //Includes
 
-#include <C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\game_header.h>
+#include <game_header.h> //C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\
 #include <cmath> //for sin
 
 //Temp includes for debugging:

@@ -124,3 +124,6 @@ Rewrite game sound function to use frame time data instead of samples used data?
 Day 28: 13.8.2025
 Doesn't crash but sound doesn't work either. Add game time counter next for constant sound.
 
+Day 29: 17.8.2025
+Updated launch settings to include files in current folder. Compiles and debugs.
+Added launch for new laptop.

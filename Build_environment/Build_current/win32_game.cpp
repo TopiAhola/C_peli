@@ -1,5 +1,6 @@
 /////////////////////////////////////////////////////////////
 //HEADER FILES
+
 #include <windows.h>
 #include <stdint.h>
 #include <xinput.h>
@@ -8,7 +9,7 @@
 #include <stdio.h>  //for sprint in performance debug
 
 
-#include <C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\game.cpp>
+#include <game.cpp> // C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\
 
 
 
