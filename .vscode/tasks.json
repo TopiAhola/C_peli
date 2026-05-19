@@ -2,8 +2,8 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "NUC C/C++: g++.exe build active file",
-            "command": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\g++.exe",
+            "label": "RIDGE C/C++: g++.exe build active file",
+            "command": "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
@@ -11,21 +11,30 @@
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "-L",
-                "C:\\Ohjelmia\\MSYS2\\ucrt64\\lib",
+                "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\lib",
                 "-l",
                 "gdi32",
                 "-l",
                 "user32",
                 "-l",
                 "onecore",
+
+                //Path to compilers include folder lets intellisense find header files
+                "-I",
+                "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\include",
+                "-I",
+                "${fileDirname}", //Include the folder itself, why?
+
                 //-D to define things in header file
                 "-D", 
                 "DEVELOPER_BUILD=1",
                 "-D",
                 "PERFORMANCE_MODE=0"
+
                 //Extra warnings 
                 //"-Wall",                 
                 //"-Wextra",
+
                 
 
             ],

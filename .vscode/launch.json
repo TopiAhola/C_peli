@@ -1,8 +1,9 @@
 {
     "configurations": [
+        
 
         {
-            "name": "NUC C/C++: g++.exe build and debug active file",
+            "name": "Ridge C/C++: g++.exe build",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -12,7 +13,7 @@
             "environment": [],
             "externalConsole": false,            
             "MIMode": "gdb",
-            "miDebuggerPath": "C:\\Ohjelmia\\MSYS2\\ucrt64\\bin\\gdb.exe", 
+            "miDebuggerPath": "C:\\Koodaus\\C_compilers\\MSYS2\\usr\\bin\\gdb.exe",
             "logging": {
                 //"trace": true,
                 //"traceResponse": true
@@ -36,7 +37,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "NUC C/C++: g++.exe build active file"
+            "preLaunchTask": "RIDGE C/C++: g++.exe build active file"
         },
         
         {

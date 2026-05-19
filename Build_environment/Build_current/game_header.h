@@ -17,6 +17,7 @@
 //TYPES
 
 //Regular bool is 1 byte
+typedef bool bool8;
 typedef unsigned long int bool32;
 
 typedef signed char int8;
