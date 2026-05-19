@@ -1,0 +1,1 @@
+C:\Koodaus\C_compilers\MSYS2\ucrt64\bin\g++.exe -g C:\Repositiot\c_peli\C_peli\Build_environment\Build_current\win32_game.cpp -o C:\Repositiot\c_peli\C_peli\Build_environment\Build_current\game_cpp_version.exe -L C:\Ohjelmia\MSYS2\ucrt64\lib -l gdi32 -l user32

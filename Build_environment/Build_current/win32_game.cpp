@@ -5,12 +5,19 @@
 #include <stdint.h>
 #include <xinput.h>
 #include <dsound.h>
-#include <cmath>    //for sin in sound test
 #include <stdio.h>  //for sprint in performance debug
 
 
 #include <game.cpp> // C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\
 
+#include <game_header.h> 
+
+#include <x86intrin.h> //for rdtsc in performance debug
+
+
+#include <math.h>
+
+//#include <cmath>    //for sin in sound test. tätä ei tarvita?
 
 
 /////////////////////////////////////////////////////////////
@@ -359,7 +366,7 @@ sound_buffer_copy(
 
         //Segment 1 writes
         half_sample_p = (INT16 *) segment1_p;
-        for(int sample = 0; sample < ( segment1_size / bytes_per_sample ); sample++){
+        for(uint32 sample = 0; sample < ( segment1_size / bytes_per_sample ); sample++){
             
             *half_sample_p = *source_half_sample_p;  //left channel 
             half_sample_p++;  source_half_sample_p++;
@@ -370,7 +377,7 @@ sound_buffer_copy(
 
         //Segment 2 writes
         half_sample_p = (INT16 *) segment2_p;
-        for(int sample = 0; sample < ( segment2_size / bytes_per_sample ); sample++){  
+        for(uint32 sample = 0; sample < ( segment2_size / bytes_per_sample ); sample++){  
 
             *half_sample_p = *source_half_sample_p;  //left channel 
             half_sample_p++;  source_half_sample_p++;

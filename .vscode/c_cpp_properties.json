@@ -3,17 +3,21 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                //"${workspaceFolder}/**",
+                "C:/Koodaus/C_compilers/MSYS2/ucrt64/include/**",
+                //"C:\\Repositiot\\c_peli\\C_peli\\**",
+                "C:/Repositiot/c_peli/C_peli/Build_environment/Build_current/**"
+
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
             ],
-            "compilerPath": "cl.exe",
+            "compilerPath": "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\bin\\gcc.exe",
             "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "windows-msvc-x64"
+            "cppStandard": "c++17"
+            //"intelliSenseMode": "windows-msvc-x64"
         }
     ],
     "version": 4

@@ -2,9 +2,11 @@
 //Includes
 
 #include <game_header.h> //C:\Users\valas\VSCProjects\C_peli\Build_environment\Build_current\
-#include <cmath> //for sin
+
+#include <math.h> //for sin  aikaisemmin cmath nyt math.h
 
 //Temp includes for debugging:
+
 //#include <windows.h>
 //#include <dsound.h>
 
@@ -20,7 +22,8 @@
 //SOUND
 
 //Writes test sound to given sound buffer 
-internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_relative, float32 y_location_relative, float32 target_frame_time){  
+internal void
+sound_test(game_soundbuffer * soundbuffer , float32 x_location_relative, float32 y_location_relative, float32 target_frame_time){  
     //TODO: if bad struct in argumets will this crash?  
     //TODO: Remove whole struct, average can be counted here locally...  
     
@@ -57,7 +60,7 @@ internal void sound_test(game_soundbuffer * soundbuffer , float32 x_location_rel
         channel_p++;
         sample_number++;
     } 
-    
+
 }
 
 ////////////////////////////////////////////////////////////////

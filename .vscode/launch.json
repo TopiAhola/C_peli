@@ -3,7 +3,7 @@
         
 
         {
-            "name": "Ridge C/C++: g++.exe build",
+            "name": "Ridge C/C++: gcc.exe build and debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -37,7 +37,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "RIDGE C/C++: g++.exe build active file"
+            "preLaunchTask": "RIDGE C/C++: gcc.exe build active file"
         },
         
         {

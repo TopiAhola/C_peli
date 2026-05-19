@@ -52,7 +52,7 @@ float32 pi32 = 3.14159265f;
 
 //BUFFERS
 
-struct game_backbuffer{
+struct game_backbuffer {
     void * p_memory;
     int width;
     int height;

@@ -2,8 +2,8 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "RIDGE C/C++: g++.exe build active file",
-            "command": "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\bin\\g++.exe",
+            "label": "RIDGE C/C++: gcc.exe build active file",
+            "command": "C:\\Koodaus\\C_compilers\\MSYS2\\ucrt64\\bin\\gcc.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
@@ -29,10 +29,10 @@
                 "-D", 
                 "DEVELOPER_BUILD=1",
                 "-D",
-                "PERFORMANCE_MODE=0"
+                "PERFORMANCE_MODE=0",
 
                 //Extra warnings 
-                //"-Wall",                 
+                "-Wall"   
                 //"-Wextra",
 
                 
